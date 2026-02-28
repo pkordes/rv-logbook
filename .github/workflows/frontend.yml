@@ -1,0 +1,40 @@
+name: Frontend
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-lint:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # `build` runs `tsc -b && vite build` — type-checks AND produces the bundle.
+      # A type error or import mistake will fail this step.
+      - name: Type-check & Build
+        run: npm run build
+
+      # Unit tests are added in Phase 9 when Vitest is configured.
