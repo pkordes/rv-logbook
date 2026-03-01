@@ -19,14 +19,20 @@ type Config struct {
 	// LogLevel controls the minimum log level. Defaults to "info".
 	// Valid values: debug, info, warn, error.
 	LogLevel string
+
+	// CORSOrigins is the list of allowed cross-origin request origins.
+	// Defaults to ["http://localhost:5173"] (Vite dev server).
+	// Set CORS_ORIGINS to a comma-separated list to override.
+	CORSOrigins []string
 }
 
 // Load reads configuration from environment variables and returns a Config.
 // Returns an error listing any required variables that are not set.
 func Load() (Config, error) {
 	cfg := Config{
-		Port:     getEnv("PORT", "8080"),
-		LogLevel: getEnv("LOG_LEVEL", "info"),
+		Port:        getEnv("PORT", "8080"),
+		LogLevel:    getEnv("LOG_LEVEL", "info"),
+		CORSOrigins: splitCSV(getEnv("CORS_ORIGINS", "http://localhost:5173")),
 	}
 
 	var missing []string
@@ -50,4 +56,15 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// splitCSV splits a comma-separated string into a trimmed slice, ignoring empty entries.
+func splitCSV(s string) []string {
+	var out []string
+	for _, part := range strings.Split(s, ",") {
+		if t := strings.TrimSpace(part); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }
