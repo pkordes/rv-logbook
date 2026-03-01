@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"time"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
@@ -168,10 +167,4 @@ func unwrapMessage(err error) string {
 		}
 	}
 	return msg
-}
-
-// dateFromTime is a convenience constructor for openapi_types.Date.
-// Exported for use in handler tests.
-func dateFromTime(t time.Time) openapi_types.Date {
-	return openapi_types.Date{Time: t}
 }

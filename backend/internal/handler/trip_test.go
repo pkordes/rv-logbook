@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -287,10 +286,4 @@ func TestDeleteTrip_404(t *testing.T) {
 	newHTTPHandler(svc).ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusNotFound, rec.Code)
-}
-
-// ---- openapi_types.Date helper (used for request body construction) --------
-func mustDate(s string) openapi_types.Date {
-	t, _ := time.Parse("2006-01-02", s)
-	return openapi_types.Date{Time: t}
 }
