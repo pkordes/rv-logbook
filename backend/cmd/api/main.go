@@ -14,9 +14,13 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/pkordes/rv-logbook/backend/internal/config"
+	"github.com/pkordes/rv-logbook/backend/internal/handler"
+	"github.com/pkordes/rv-logbook/backend/internal/handler/gen"
+	"github.com/pkordes/rv-logbook/backend/internal/middleware"
 )
 
 func main() {
@@ -58,10 +62,21 @@ func main() {
 	slog.Info("database connection established")
 
 	// --- Router -----------------------------------------------------------
-	// Handlers are registered here as phases progress.
-	// Middleware is added in step 1.6.
+	// Middleware is applied in order: RequestID → RealIP → Logger → Recoverer.
+	// RequestID generates a unique trace ID per request.
+	// RealIP sets r.RemoteAddr from X-Forwarded-For / X-Real-IP (safe behind a proxy).
+	// SlogLogger writes one structured JSON log line per request.
+	// Recoverer catches panics and returns HTTP 500 instead of crashing.
 	r := chi.NewRouter()
-	_ = r // will be used in step 1.4 when the health handler is wired in
+	r.Use(chimiddleware.RequestID)
+	r.Use(chimiddleware.RealIP)
+	r.Use(middleware.NewSlogLogger(logger))
+	r.Use(chimiddleware.Recoverer)
+
+	// Register handlers. gen.NewStrictHandler adapts our StrictServerInterface
+	// implementation to the lower-level ServerInterface chi expects.
+	healthHandler := handler.NewHealthHandler()
+	r.Mount("/", gen.Handler(gen.NewStrictHandler(healthHandler, nil)))
 
 	// --- HTTP Server ------------------------------------------------------
 	// Explicit timeouts prevent slowloris and resource exhaustion attacks.
