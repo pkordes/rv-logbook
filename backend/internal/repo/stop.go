@@ -119,11 +119,46 @@ func (r *pgStopRepo) ListByTripID(ctx context.Context, tripID uuid.UUID) ([]doma
 	return stops, nil
 }
 
-// ListByTripIDPaged returns one page of stops for a trip ordered by arrived_at ascending.
-// Stub: returns empty results. Real implementation added in step 7.4 (Green).
+// ListByTripIDPaged returns one page of stops for a trip ordered by arrived_at ascending,
+// together with the total number of stops for that trip across all pages.
 func (r *pgStopRepo) ListByTripIDPaged(ctx context.Context, tripID uuid.UUID, p domain.PaginationParams) ([]domain.Stop, int64, error) {
-	_, _ = tripID, p
-	return nil, 0, nil
+	const countQ = `SELECT COUNT(*) FROM stops WHERE trip_id = @trip_id`
+
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, pgx.NamedArgs{"trip_id": tripID}).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("repo.StopRepo.ListByTripIDPaged: count: %w", err)
+	}
+
+	const q = `
+		SELECT id, trip_id, name, location, arrived_at, departed_at, notes, created_at, updated_at
+		FROM stops
+		WHERE trip_id = @trip_id
+		ORDER BY arrived_at ASC
+		LIMIT @limit OFFSET @offset`
+
+	rows, err := r.db.Query(ctx, q, pgx.NamedArgs{
+		"trip_id": tripID,
+		"limit":   p.Limit,
+		"offset":  p.Offset(),
+	})
+	if err != nil {
+		return nil, 0, fmt.Errorf("repo.StopRepo.ListByTripIDPaged: query: %w", err)
+	}
+	defer rows.Close()
+
+	stops := []domain.Stop{}
+	for rows.Next() {
+		s, err := scanStop(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("repo.StopRepo.ListByTripIDPaged: scan: %w", err)
+		}
+		stops = append(stops, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("repo.StopRepo.ListByTripIDPaged: rows: %w", err)
+	}
+
+	return stops, total, nil
 }
 
 // Update overwrites the mutable fields of a stop and returns the updated record.

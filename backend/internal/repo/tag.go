@@ -95,11 +95,47 @@ func (r *pgTagRepo) List(ctx context.Context, prefix string) ([]domain.Tag, erro
 	return tags, nil
 }
 
-// ListPaged returns one page of tags matching prefix ordered by slug.
-// Stub: returns empty results. Real implementation added in step 7.4 (Green).
+// ListPaged returns one page of tags whose slug starts with prefix, ordered by slug,
+// together with the total matching count across all pages.
+// Pass prefix="" to include all tags.
 func (r *pgTagRepo) ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error) {
-	_, _ = prefix, p
-	return nil, 0, nil
+	const countQ = `SELECT COUNT(*) FROM tags WHERE slug LIKE @prefix || '%'`
+
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, pgx.NamedArgs{"prefix": prefix}).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("repo.TagRepo.ListPaged: count: %w", err)
+	}
+
+	const q = `
+		SELECT id, name, slug, created_at
+		FROM tags
+		WHERE slug LIKE @prefix || '%'
+		ORDER BY slug
+		LIMIT @limit OFFSET @offset`
+
+	rows, err := r.db.Query(ctx, q, pgx.NamedArgs{
+		"prefix": prefix,
+		"limit":  p.Limit,
+		"offset": p.Offset(),
+	})
+	if err != nil {
+		return nil, 0, fmt.Errorf("repo.TagRepo.ListPaged: query: %w", err)
+	}
+	defer rows.Close()
+
+	tags := []domain.Tag{}
+	for rows.Next() {
+		tag, err := scanTag(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("repo.TagRepo.ListPaged: scan: %w", err)
+		}
+		tags = append(tags, tag)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("repo.TagRepo.ListPaged: rows: %w", err)
+	}
+
+	return tags, total, nil
 }
 
 // AddToStop links a tag to a stop. Idempotent via ON CONFLICT DO NOTHING.

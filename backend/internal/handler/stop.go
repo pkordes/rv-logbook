@@ -36,11 +36,10 @@ func (s *Server) CreateStop(ctx context.Context, req gen.CreateStopRequestObject
 }
 
 // ListStops handles GET /trips/{tripId}/stops.
-// Stub: returns stops but leaves Pagination metadata at zero-values.
-// Real pagination wired in the Green commit of step 7.4.
+// Supports ?page= and ?limit= query parameters (defaults: page=1, limit=20, max=100).
 func (s *Server) ListStops(ctx context.Context, req gen.ListStopsRequestObject) (gen.ListStopsResponseObject, error) {
 	params := domain.NewPaginationParams(req.Params.Page, req.Params.Limit)
-	stops, _, err := s.stops.ListByTripIDPaged(ctx, req.TripId, params) // total ignored in stub
+	stops, total, err := s.stops.ListByTripIDPaged(ctx, req.TripId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +48,14 @@ func (s *Server) ListStops(ctx context.Context, req gen.ListStopsRequestObject) 
 	for i, st := range stops {
 		data[i] = stopToResponse(st)
 	}
-	// Stub: Pagination not populated — tests will fail on Pagination.Total.
-	return gen.ListStops200JSONResponse{Data: data}, nil
+	return gen.ListStops200JSONResponse{
+		Data: data,
+		Pagination: gen.Pagination{
+			Page:  params.Page,
+			Limit: params.Limit,
+			Total: int(total),
+		},
+	}, nil
 }
 
 // GetStop handles GET /trips/{tripId}/stops/{stopId}.
