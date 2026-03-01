@@ -8,21 +8,77 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// CreateTripRequest defines model for CreateTripRequest.
+type CreateTripRequest struct {
+	EndDate   *openapi_types.Date `json:"end_date,omitempty"`
+	Name      string              `json:"name"`
+	Notes     *string             `json:"notes,omitempty"`
+	StartDate openapi_types.Date  `json:"start_date"`
+}
+
+// ErrorResponse defines model for ErrorResponse.
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
 
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
 	Status string `json:"status"`
 }
 
+// Trip defines model for Trip.
+type Trip struct {
+	CreatedAt time.Time           `json:"created_at"`
+	EndDate   *openapi_types.Date `json:"end_date,omitempty"`
+	Id        openapi_types.UUID  `json:"id"`
+	Name      string              `json:"name"`
+	Notes     *string             `json:"notes,omitempty"`
+	StartDate openapi_types.Date  `json:"start_date"`
+	UpdatedAt time.Time           `json:"updated_at"`
+}
+
+// UpdateTripRequest defines model for UpdateTripRequest.
+type UpdateTripRequest struct {
+	EndDate   *openapi_types.Date `json:"end_date,omitempty"`
+	Name      string              `json:"name"`
+	Notes     *string             `json:"notes,omitempty"`
+	StartDate openapi_types.Date  `json:"start_date"`
+}
+
+// CreateTripJSONRequestBody defines body for CreateTrip for application/json ContentType.
+type CreateTripJSONRequestBody = CreateTripRequest
+
+// UpdateTripJSONRequestBody defines body for UpdateTrip for application/json ContentType.
+type UpdateTripJSONRequestBody = UpdateTripRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Health check
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// List all trips
+	// (GET /trips)
+	ListTrips(w http.ResponseWriter, r *http.Request)
+	// Create a trip
+	// (POST /trips)
+	CreateTrip(w http.ResponseWriter, r *http.Request)
+	// Delete a trip
+	// (DELETE /trips/{id})
+	DeleteTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// Get a trip by ID
+	// (GET /trips/{id})
+	GetTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// Update a trip
+	// (PUT /trips/{id})
+	UpdateTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -32,6 +88,36 @@ type Unimplemented struct{}
 // Health check
 // (GET /healthz)
 func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List all trips
+// (GET /trips)
+func (_ Unimplemented) ListTrips(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a trip
+// (POST /trips)
+func (_ Unimplemented) CreateTrip(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a trip
+// (DELETE /trips/{id})
+func (_ Unimplemented) DeleteTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get a trip by ID
+// (GET /trips/{id})
+func (_ Unimplemented) GetTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update a trip
+// (PUT /trips/{id})
+func (_ Unimplemented) UpdateTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -49,6 +135,109 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTrips operation middleware
+func (siw *ServerInterfaceWrapper) ListTrips(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTrips(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTrip operation middleware
+func (siw *ServerInterfaceWrapper) CreateTrip(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTrip(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTrip operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTrip(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTrip(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTrip operation middleware
+func (siw *ServerInterfaceWrapper) GetTrip(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTrip(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateTrip operation middleware
+func (siw *ServerInterfaceWrapper) UpdateTrip(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateTrip(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -174,6 +363,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/healthz", wrapper.GetHealth)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/trips", wrapper.ListTrips)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/trips", wrapper.CreateTrip)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/trips/{id}", wrapper.DeleteTrip)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/trips/{id}", wrapper.GetTrip)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/trips/{id}", wrapper.UpdateTrip)
+	})
 
 	return r
 }
@@ -194,11 +398,155 @@ func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseW
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListTripsRequestObject struct {
+}
+
+type ListTripsResponseObject interface {
+	VisitListTripsResponse(w http.ResponseWriter) error
+}
+
+type ListTrips200JSONResponse []Trip
+
+func (response ListTrips200JSONResponse) VisitListTripsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTripRequestObject struct {
+	Body *CreateTripJSONRequestBody
+}
+
+type CreateTripResponseObject interface {
+	VisitCreateTripResponse(w http.ResponseWriter) error
+}
+
+type CreateTrip201JSONResponse Trip
+
+func (response CreateTrip201JSONResponse) VisitCreateTripResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTrip422JSONResponse ErrorResponse
+
+func (response CreateTrip422JSONResponse) VisitCreateTripResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTripRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type DeleteTripResponseObject interface {
+	VisitDeleteTripResponse(w http.ResponseWriter) error
+}
+
+type DeleteTrip204Response struct {
+}
+
+func (response DeleteTrip204Response) VisitDeleteTripResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTrip404JSONResponse ErrorResponse
+
+func (response DeleteTrip404JSONResponse) VisitDeleteTripResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTripRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type GetTripResponseObject interface {
+	VisitGetTripResponse(w http.ResponseWriter) error
+}
+
+type GetTrip200JSONResponse Trip
+
+func (response GetTrip200JSONResponse) VisitGetTripResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTrip404JSONResponse ErrorResponse
+
+func (response GetTrip404JSONResponse) VisitGetTripResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTripRequestObject struct {
+	Id   openapi_types.UUID `json:"id"`
+	Body *UpdateTripJSONRequestBody
+}
+
+type UpdateTripResponseObject interface {
+	VisitUpdateTripResponse(w http.ResponseWriter) error
+}
+
+type UpdateTrip200JSONResponse Trip
+
+func (response UpdateTrip200JSONResponse) VisitUpdateTripResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTrip404JSONResponse ErrorResponse
+
+func (response UpdateTrip404JSONResponse) VisitUpdateTripResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTrip422JSONResponse ErrorResponse
+
+func (response UpdateTrip422JSONResponse) VisitUpdateTripResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Health check
 	// (GET /healthz)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// List all trips
+	// (GET /trips)
+	ListTrips(ctx context.Context, request ListTripsRequestObject) (ListTripsResponseObject, error)
+	// Create a trip
+	// (POST /trips)
+	CreateTrip(ctx context.Context, request CreateTripRequestObject) (CreateTripResponseObject, error)
+	// Delete a trip
+	// (DELETE /trips/{id})
+	DeleteTrip(ctx context.Context, request DeleteTripRequestObject) (DeleteTripResponseObject, error)
+	// Get a trip by ID
+	// (GET /trips/{id})
+	GetTrip(ctx context.Context, request GetTripRequestObject) (GetTripResponseObject, error)
+	// Update a trip
+	// (PUT /trips/{id})
+	UpdateTrip(ctx context.Context, request UpdateTripRequestObject) (UpdateTripResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -247,6 +595,146 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetHealthResponseObject); ok {
 		if err := validResponse.VisitGetHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTrips operation middleware
+func (sh *strictHandler) ListTrips(w http.ResponseWriter, r *http.Request) {
+	var request ListTripsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTrips(ctx, request.(ListTripsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTrips")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTripsResponseObject); ok {
+		if err := validResponse.VisitListTripsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTrip operation middleware
+func (sh *strictHandler) CreateTrip(w http.ResponseWriter, r *http.Request) {
+	var request CreateTripRequestObject
+
+	var body CreateTripJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTrip(ctx, request.(CreateTripRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTrip")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTripResponseObject); ok {
+		if err := validResponse.VisitCreateTripResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteTrip operation middleware
+func (sh *strictHandler) DeleteTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	var request DeleteTripRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTrip(ctx, request.(DeleteTripRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTrip")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteTripResponseObject); ok {
+		if err := validResponse.VisitDeleteTripResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTrip operation middleware
+func (sh *strictHandler) GetTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	var request GetTripRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTrip(ctx, request.(GetTripRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTrip")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTripResponseObject); ok {
+		if err := validResponse.VisitGetTripResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateTrip operation middleware
+func (sh *strictHandler) UpdateTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	var request UpdateTripRequestObject
+
+	request.Id = id
+
+	var body UpdateTripJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTrip(ctx, request.(UpdateTripRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTrip")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateTripResponseObject); ok {
+		if err := validResponse.VisitUpdateTripResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

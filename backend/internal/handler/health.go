@@ -8,16 +8,8 @@ import (
 	"github.com/pkordes/rv-logbook/backend/internal/handler/gen"
 )
 
-// HealthHandler implements gen.StrictServerInterface for the /healthz endpoint.
-type HealthHandler struct{}
-
-// NewHealthHandler returns a new HealthHandler.
-func NewHealthHandler() *HealthHandler {
-	return &HealthHandler{}
-}
-
 // GetHealth handles GET /healthz.
 // It returns HTTP 200 with {"status":"ok"} when the server is running.
-func (h *HealthHandler) GetHealth(ctx context.Context, _ gen.GetHealthRequestObject) (gen.GetHealthResponseObject, error) {
+func (s *Server) GetHealth(ctx context.Context, _ gen.GetHealthRequestObject) (gen.GetHealthResponseObject, error) {
 	return gen.GetHealth200JSONResponse{Status: "ok"}, nil
 }

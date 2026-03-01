@@ -21,6 +21,9 @@ import (
 	"github.com/pkordes/rv-logbook/backend/internal/handler"
 	"github.com/pkordes/rv-logbook/backend/internal/handler/gen"
 	"github.com/pkordes/rv-logbook/backend/internal/middleware"
+	"github.com/pkordes/rv-logbook/backend/internal/repo"
+	"github.com/pkordes/rv-logbook/backend/internal/service"
+	"github.com/pkordes/rv-logbook/backend/spec"
 )
 
 func main() {
@@ -80,10 +83,23 @@ func main() {
 	r.Use(middleware.NewSlogLogger(logger))
 	r.Use(chimiddleware.Recoverer)
 
-	// Register handlers. gen.NewStrictHandler adapts our StrictServerInterface
-	// implementation to the lower-level ServerInterface chi expects.
-	healthHandler := handler.NewHealthHandler()
-	r.Mount("/", gen.Handler(gen.NewStrictHandler(healthHandler, nil)))
+	// Wire the dependency chain: pool → repo → service → handler.
+	tripRepo := repo.NewTripRepo(pool)
+	tripService := service.NewTripService(tripRepo)
+	server := handler.NewServer(tripService)
+	r.Mount("/", gen.Handler(gen.NewStrictHandler(server, nil)))
+
+	// --- Docs routes (dev convenience) -----------------------------------
+	// GET /openapi.yaml  — serves the embedded OpenAPI spec
+	// GET /docs          — serves the Scalar API browser UI (CDN-hosted, zero deps)
+	r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/yaml")
+		w.Write(spec.OpenAPI) //nolint:errcheck
+	})
+	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(scalarHTML)) //nolint:errcheck
+	})
 
 	// --- HTTP Server ------------------------------------------------------
 	// Explicit timeouts prevent slowloris and resource exhaustion attacks.
@@ -125,3 +141,22 @@ func main() {
 	}
 	slog.Info("server stopped")
 }
+
+// scalarHTML is the single-page Scalar API browser UI.
+// It loads the Scalar library from CDN and points it at our /openapi.yaml endpoint.
+// Scalar is a modern alternative to Swagger UI — cleaner design, same functionality.
+// Available at http://localhost:8080/docs when the server is running.
+const scalarHTML = `<!doctype html>
+<html>
+  <head>
+    <title>RV Logbook API Docs</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="/openapi.yaml"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>`

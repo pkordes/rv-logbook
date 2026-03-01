@@ -75,10 +75,12 @@ backend/build:
 	cd $(BACKEND_DIR) && go build -o bin/api ./cmd/api
 
 ## Run all Go tests via gotestsum.
+## -p 1 runs one test package at a time — required because integration tests
+## share a single Postgres database and would conflict if run in parallel.
 ## -race is omitted locally: it requires CGO (a C compiler).
 ## The race detector runs in CI on Linux where gcc is available.
 backend/test:
-	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 ./...
+	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 -p 1 ./...
 
 ## Run go vet and staticcheck.
 ## Both must pass with zero warnings — this mirrors the CI check.

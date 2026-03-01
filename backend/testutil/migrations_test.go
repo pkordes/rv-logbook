@@ -34,6 +34,14 @@ func TestMigrations(t *testing.T) {
 
 	ctx := context.Background()
 
+	// --- Ensure a clean baseline before testing ---
+	// Another package's TestMain may have already applied migrations against this
+	// shared test DB. Reset to version 0 first so this test is self-contained and
+	// order-independent, whether run alone or as part of the full suite.
+	if _, err := provider.DownTo(ctx, 0); err != nil {
+		t.Fatalf("TestMigrations: initial reset: %v", err)
+	}
+
 	// --- Red → Green: apply all migrations ---
 	results, err := provider.Up(ctx)
 	require.NoError(t, err, "goose up")

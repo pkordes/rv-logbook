@@ -1,0 +1,235 @@
+openapi: "3.0.0"
+info:
+  title: RV Logbook API
+  version: "0.1.0"
+  description: API for tracking RV trips, stops, and tags.
+
+paths:
+  /healthz:
+    get:
+      operationId: GetHealth
+      summary: Health check
+      description: Returns 200 when the server is ready to accept traffic.
+      tags:
+        - health
+      responses:
+        "200":
+          description: Server is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /trips:
+    post:
+      operationId: CreateTrip
+      summary: Create a trip
+      tags:
+        - trips
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTripRequest"
+      responses:
+        "201":
+          description: Trip created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trip"
+        "422":
+          description: Validation error — missing required field or invalid date range.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      operationId: ListTrips
+      summary: List all trips
+      tags:
+        - trips
+      responses:
+        "200":
+          description: A list of all trips, ordered by start_date descending.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Trip"
+
+  /trips/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      operationId: GetTrip
+      summary: Get a trip by ID
+      tags:
+        - trips
+      responses:
+        "200":
+          description: The requested trip.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trip"
+        "404":
+          description: Trip not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      operationId: UpdateTrip
+      summary: Update a trip
+      tags:
+        - trips
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTripRequest"
+      responses:
+        "200":
+          description: The updated trip.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trip"
+        "404":
+          description: Trip not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: DeleteTrip
+      summary: Delete a trip
+      tags:
+        - trips
+      responses:
+        "204":
+          description: Trip deleted successfully. No response body.
+        "404":
+          description: Trip not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: ok
+
+    CreateTripRequest:
+      type: object
+      required:
+        - name
+        - start_date
+      properties:
+        name:
+          type: string
+          example: "Summer Tour 2025"
+        start_date:
+          type: string
+          format: date
+          example: "2025-06-01"
+        end_date:
+          type: string
+          format: date
+          example: "2025-06-15"
+          nullable: true
+        notes:
+          type: string
+          example: "Pacific coast route"
+
+    Trip:
+      type: object
+      required:
+        - id
+        - name
+        - start_date
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        name:
+          type: string
+          example: "Summer Tour 2025"
+        start_date:
+          type: string
+          format: date
+          example: "2025-06-01"
+        end_date:
+          type: string
+          format: date
+          example: "2025-06-15"
+          nullable: true
+        notes:
+          type: string
+          example: "Pacific coast route"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "name is required"
+
+    UpdateTripRequest:
+      type: object
+      required:
+        - name
+        - start_date
+      properties:
+        name:
+          type: string
+          example: "Summer Tour 2025"
+        start_date:
+          type: string
+          format: date
+          example: "2025-06-01"
+        end_date:
+          type: string
+          format: date
+          example: "2025-06-15"
+          nullable: true
+        notes:
+          type: string
+          example: "Pacific coast route"
