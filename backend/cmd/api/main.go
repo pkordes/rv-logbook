@@ -78,12 +78,14 @@ func main() {
 	// SlogLogger writes one structured JSON log line per request.
 	// Recoverer catches panics and returns HTTP 500 instead of crashing.
 	// NewCORSHandler applies CORS headers based on the configured allowed origins.
+	// NewMaxBodySizeHandler rejects bodies exceeding cfg.MaxBodyBytes (default 1 MiB).
 	r := chi.NewRouter()
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.NewSlogLogger(logger))
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.NewCORSHandler(cfg.CORSOrigins))
+	r.Use(middleware.NewMaxBodySizeHandler(cfg.MaxBodyBytes))
 
 	// Wire the dependency chain: pool → repo → service → handler.
 	tripRepo := repo.NewTripRepo(pool)

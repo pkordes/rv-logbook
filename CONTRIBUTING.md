@@ -61,6 +61,7 @@ cp .env.example .env
 | `TEST_DATABASE_URL` | yes | — | Postgres connection string for test DB (integration tests) |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, `error` |
 | `CORS_ORIGINS` | no | `http://localhost:5173` | Comma-separated list of allowed CORS origins |
+| `MAX_BODY_BYTES` | no | `1048576` (1 MiB) | Maximum request body size; larger bodies get HTTP 413 |
 
 > `.env` is gitignored. Never commit real credentials.
 > The defaults in `.env.example` match the `docker-compose.yml` credentials and work out of the box.

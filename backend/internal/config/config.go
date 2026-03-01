@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -35,9 +36,10 @@ type Config struct {
 // Returns an error listing any required variables that are not set.
 func Load() (Config, error) {
 	cfg := Config{
-		Port:        getEnv("PORT", "8080"),
-		LogLevel:    getEnv("LOG_LEVEL", "info"),
-		CORSOrigins: splitCSV(getEnv("CORS_ORIGINS", "http://localhost:5173")),
+		Port:         getEnv("PORT", "8080"),
+		LogLevel:     getEnv("LOG_LEVEL", "info"),
+		CORSOrigins:  splitCSV(getEnv("CORS_ORIGINS", "http://localhost:5173")),
+		MaxBodyBytes: getEnvInt64("MAX_BODY_BYTES", 1<<20),
 	}
 
 	var missing []string
@@ -72,4 +74,18 @@ func splitCSV(s string) []string {
 		}
 	}
 	return out
+}
+
+// getEnvInt64 returns the env var named by key parsed as int64,
+// or fallback if the variable is not set, empty, or not a valid integer.
+func getEnvInt64(key string, fallback int64) int64 {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	n, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return fallback
+	}
+	return n
 }
