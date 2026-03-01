@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -145,6 +146,10 @@ func TestAddTagToStop_422_ValidationError(t *testing.T) {
 	newTagHTTPHandler(nil, svc).ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "validation_error", errResp.Error.Code)
 }
 
 func TestAddTagToStop_404_StopNotFound(t *testing.T) {
@@ -163,7 +168,11 @@ func TestAddTagToStop_404_StopNotFound(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newTagHTTPHandler(nil, svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }
 
 // ---- DELETE /trips/{tripId}/stops/{stopId}/tags/{slug} ----------------------
@@ -201,5 +210,9 @@ func TestRemoveTagFromStop_404_NotLinked(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newTagHTTPHandler(nil, svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }

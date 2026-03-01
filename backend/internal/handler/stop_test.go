@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/pkordes/rv-logbook/backend/internal/domain"
 	"github.com/pkordes/rv-logbook/backend/internal/handler"
@@ -118,7 +120,11 @@ func TestCreateStop_404_TripNotFound(t *testing.T) {
 
 	newStopHTTPHandler(svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }
 
 func TestCreateStop_422_Validation(t *testing.T) {
@@ -140,6 +146,10 @@ func TestCreateStop_422_Validation(t *testing.T) {
 	newStopHTTPHandler(svc).ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "validation_error", errResp.Error.Code)
 }
 
 // ---- GET /trips/{tripId}/stops --------------------------------------------
@@ -210,7 +220,11 @@ func TestGetStop_404(t *testing.T) {
 
 	newStopHTTPHandler(svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }
 
 // ---- PUT /trips/{tripId}/stops/{stopId} -----------------------------------
@@ -256,7 +270,11 @@ func TestUpdateStop_404(t *testing.T) {
 
 	newStopHTTPHandler(svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }
 
 // ---- DELETE /trips/{tripId}/stops/{stopId} --------------------------------
@@ -292,5 +310,9 @@ func TestDeleteStop_404(t *testing.T) {
 
 	newStopHTTPHandler(svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }

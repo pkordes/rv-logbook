@@ -134,7 +134,7 @@ func TestCreateTrip_422_ValidationError(t *testing.T) {
 
 	var resp gen.ErrorResponse
 	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
-	assert.NotEmpty(t, resp.Error)
+	assert.Equal(t, "validation_error", resp.Error.Code)
 }
 
 // ---- GET /trips ------------------------------------------------------------
@@ -207,7 +207,11 @@ func TestGetTrip_404(t *testing.T) {
 
 	newHTTPHandler(svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }
 
 // ---- PUT /trips/{id} -------------------------------------------------------
@@ -257,7 +261,11 @@ func TestUpdateTrip_404(t *testing.T) {
 
 	newHTTPHandler(svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }
 
 // ---- DELETE /trips/{id} ----------------------------------------------------
@@ -285,5 +293,9 @@ func TestDeleteTrip_404(t *testing.T) {
 
 	newHTTPHandler(svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }

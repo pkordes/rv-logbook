@@ -57,9 +57,18 @@ type CreateTripRequest struct {
 	StartDate openapi_types.Date  `json:"start_date"`
 }
 
+// ErrorDetail defines model for ErrorDetail.
+type ErrorDetail struct {
+	// Code Machine-readable error code for client branching.
+	Code string `json:"code"`
+
+	// Message Human-readable description of the error.
+	Message string `json:"message"`
+}
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
-	Error string `json:"error"`
+	Error ErrorDetail `json:"error"`
 }
 
 // ExportRow defines model for ExportRow.

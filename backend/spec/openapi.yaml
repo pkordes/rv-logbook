@@ -501,14 +501,28 @@ components:
           type: string
           format: date-time
 
+    ErrorDetail:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code for client branching.
+          example: "not_found"
+        message:
+          type: string
+          description: Human-readable description of the error.
+          example: "trip not found"
+
     ErrorResponse:
       type: object
       required:
         - error
       properties:
         error:
-          type: string
-          example: "name is required"
+          $ref: "#/components/schemas/ErrorDetail"
 
     CreateStopRequest:
       type: object
