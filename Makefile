@@ -74,10 +74,11 @@ backend/run:
 backend/build:
 	cd $(BACKEND_DIR) && go build -o bin/api ./cmd/api
 
-## Run all Go tests with race detector enabled.
-## Integration tests require the DB to be running: make db/up && make db/migrate
+## Run all Go tests via gotestsum.
+## -race is omitted locally: it requires CGO (a C compiler).
+## The race detector runs in CI on Linux where gcc is available.
 backend/test:
-	cd $(BACKEND_DIR) && go test -race -count=1 ./...
+	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 ./...
 
 ## Run go vet and staticcheck.
 ## Both must pass with zero warnings — this mirrors the CI check.
