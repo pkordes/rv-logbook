@@ -135,6 +135,147 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /trips/{tripId}/stops:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      operationId: CreateStop
+      summary: Create a stop on a trip
+      tags:
+        - stops
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStopRequest"
+      responses:
+        "201":
+          description: Stop created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stop"
+        "404":
+          description: Trip not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      operationId: ListStops
+      summary: List all stops for a trip
+      tags:
+        - stops
+      responses:
+        "200":
+          description: A list of stops ordered by arrived_at ascending.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Stop"
+        "404":
+          description: Trip not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /trips/{tripId}/stops/{stopId}:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stopId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      operationId: GetStop
+      summary: Get a stop by ID
+      tags:
+        - stops
+      responses:
+        "200":
+          description: The requested stop.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stop"
+        "404":
+          description: Stop not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      operationId: UpdateStop
+      summary: Update a stop
+      tags:
+        - stops
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStopRequest"
+      responses:
+        "200":
+          description: The updated stop.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stop"
+        "404":
+          description: Stop not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: DeleteStop
+      summary: Delete a stop
+      tags:
+        - stops
+      responses:
+        "204":
+          description: Stop deleted successfully. No response body.
+        "404":
+          description: Stop not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthResponse:
@@ -211,6 +352,103 @@ components:
         error:
           type: string
           example: "name is required"
+
+    CreateStopRequest:
+      type: object
+      required:
+        - name
+        - arrived_at
+      properties:
+        name:
+          type: string
+          example: "Yellowstone Camp"
+        location:
+          type: string
+          example: "Yellowstone, WY"
+          nullable: true
+        arrived_at:
+          type: string
+          format: date-time
+          example: "2025-06-02T10:00:00Z"
+        departed_at:
+          type: string
+          format: date-time
+          example: "2025-06-04T09:00:00Z"
+          nullable: true
+        notes:
+          type: string
+          example: "Great views"
+          nullable: true
+
+    UpdateStopRequest:
+      type: object
+      required:
+        - name
+        - arrived_at
+      properties:
+        name:
+          type: string
+          example: "Yellowstone Camp"
+        location:
+          type: string
+          example: "Yellowstone, WY"
+          nullable: true
+        arrived_at:
+          type: string
+          format: date-time
+          example: "2025-06-02T10:00:00Z"
+        departed_at:
+          type: string
+          format: date-time
+          example: "2025-06-04T09:00:00Z"
+          nullable: true
+        notes:
+          type: string
+          example: "Great views"
+          nullable: true
+
+    Stop:
+      type: object
+      required:
+        - id
+        - trip_id
+        - name
+        - arrived_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        trip_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Yellowstone Camp"
+        location:
+          type: string
+          example: "Yellowstone, WY"
+          nullable: true
+        arrived_at:
+          type: string
+          format: date-time
+          example: "2025-06-02T10:00:00Z"
+        departed_at:
+          type: string
+          format: date-time
+          example: "2025-06-04T09:00:00Z"
+          nullable: true
+        notes:
+          type: string
+          example: "Great views"
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     UpdateTripRequest:
       type: object

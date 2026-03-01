@@ -16,6 +16,15 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// CreateStopRequest defines model for CreateStopRequest.
+type CreateStopRequest struct {
+	ArrivedAt  time.Time  `json:"arrived_at"`
+	DepartedAt *time.Time `json:"departed_at,omitempty"`
+	Location   *string    `json:"location,omitempty"`
+	Name       string     `json:"name"`
+	Notes      *string    `json:"notes,omitempty"`
+}
+
 // CreateTripRequest defines model for CreateTripRequest.
 type CreateTripRequest struct {
 	EndDate   *openapi_types.Date `json:"end_date,omitempty"`
@@ -34,6 +43,19 @@ type HealthResponse struct {
 	Status string `json:"status"`
 }
 
+// Stop defines model for Stop.
+type Stop struct {
+	ArrivedAt  time.Time          `json:"arrived_at"`
+	CreatedAt  time.Time          `json:"created_at"`
+	DepartedAt *time.Time         `json:"departed_at,omitempty"`
+	Id         openapi_types.UUID `json:"id"`
+	Location   *string            `json:"location,omitempty"`
+	Name       string             `json:"name"`
+	Notes      *string            `json:"notes,omitempty"`
+	TripId     openapi_types.UUID `json:"trip_id"`
+	UpdatedAt  time.Time          `json:"updated_at"`
+}
+
 // Trip defines model for Trip.
 type Trip struct {
 	CreatedAt time.Time           `json:"created_at"`
@@ -43,6 +65,15 @@ type Trip struct {
 	Notes     *string             `json:"notes,omitempty"`
 	StartDate openapi_types.Date  `json:"start_date"`
 	UpdatedAt time.Time           `json:"updated_at"`
+}
+
+// UpdateStopRequest defines model for UpdateStopRequest.
+type UpdateStopRequest struct {
+	ArrivedAt  time.Time  `json:"arrived_at"`
+	DepartedAt *time.Time `json:"departed_at,omitempty"`
+	Location   *string    `json:"location,omitempty"`
+	Name       string     `json:"name"`
+	Notes      *string    `json:"notes,omitempty"`
 }
 
 // UpdateTripRequest defines model for UpdateTripRequest.
@@ -58,6 +89,12 @@ type CreateTripJSONRequestBody = CreateTripRequest
 
 // UpdateTripJSONRequestBody defines body for UpdateTrip for application/json ContentType.
 type UpdateTripJSONRequestBody = UpdateTripRequest
+
+// CreateStopJSONRequestBody defines body for CreateStop for application/json ContentType.
+type CreateStopJSONRequestBody = CreateStopRequest
+
+// UpdateStopJSONRequestBody defines body for UpdateStop for application/json ContentType.
+type UpdateStopJSONRequestBody = UpdateStopRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -79,6 +116,21 @@ type ServerInterface interface {
 	// Update a trip
 	// (PUT /trips/{id})
 	UpdateTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// List all stops for a trip
+	// (GET /trips/{tripId}/stops)
+	ListStops(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID)
+	// Create a stop on a trip
+	// (POST /trips/{tripId}/stops)
+	CreateStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID)
+	// Delete a stop
+	// (DELETE /trips/{tripId}/stops/{stopId})
+	DeleteStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, stopId openapi_types.UUID)
+	// Get a stop by ID
+	// (GET /trips/{tripId}/stops/{stopId})
+	GetStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, stopId openapi_types.UUID)
+	// Update a stop
+	// (PUT /trips/{tripId}/stops/{stopId})
+	UpdateStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, stopId openapi_types.UUID)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -118,6 +170,36 @@ func (_ Unimplemented) GetTrip(w http.ResponseWriter, r *http.Request, id openap
 // Update a trip
 // (PUT /trips/{id})
 func (_ Unimplemented) UpdateTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List all stops for a trip
+// (GET /trips/{tripId}/stops)
+func (_ Unimplemented) ListStops(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a stop on a trip
+// (POST /trips/{tripId}/stops)
+func (_ Unimplemented) CreateStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a stop
+// (DELETE /trips/{tripId}/stops/{stopId})
+func (_ Unimplemented) DeleteStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, stopId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get a stop by ID
+// (GET /trips/{tripId}/stops/{stopId})
+func (_ Unimplemented) GetStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, stopId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update a stop
+// (PUT /trips/{tripId}/stops/{stopId})
+func (_ Unimplemented) UpdateStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, stopId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -238,6 +320,158 @@ func (siw *ServerInterfaceWrapper) UpdateTrip(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateTrip(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListStops operation middleware
+func (siw *ServerInterfaceWrapper) ListStops(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "tripId" -------------
+	var tripId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tripId", chi.URLParam(r, "tripId"), &tripId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tripId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListStops(w, r, tripId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateStop operation middleware
+func (siw *ServerInterfaceWrapper) CreateStop(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "tripId" -------------
+	var tripId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tripId", chi.URLParam(r, "tripId"), &tripId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tripId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateStop(w, r, tripId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteStop operation middleware
+func (siw *ServerInterfaceWrapper) DeleteStop(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "tripId" -------------
+	var tripId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tripId", chi.URLParam(r, "tripId"), &tripId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tripId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "stopId" -------------
+	var stopId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "stopId", chi.URLParam(r, "stopId"), &stopId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "stopId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteStop(w, r, tripId, stopId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetStop operation middleware
+func (siw *ServerInterfaceWrapper) GetStop(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "tripId" -------------
+	var tripId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tripId", chi.URLParam(r, "tripId"), &tripId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tripId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "stopId" -------------
+	var stopId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "stopId", chi.URLParam(r, "stopId"), &stopId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "stopId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStop(w, r, tripId, stopId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateStop operation middleware
+func (siw *ServerInterfaceWrapper) UpdateStop(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "tripId" -------------
+	var tripId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tripId", chi.URLParam(r, "tripId"), &tripId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tripId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "stopId" -------------
+	var stopId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "stopId", chi.URLParam(r, "stopId"), &stopId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "stopId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateStop(w, r, tripId, stopId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -377,6 +611,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/trips/{id}", wrapper.UpdateTrip)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/trips/{tripId}/stops", wrapper.ListStops)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/trips/{tripId}/stops", wrapper.CreateStop)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/trips/{tripId}/stops/{stopId}", wrapper.DeleteStop)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/trips/{tripId}/stops/{stopId}", wrapper.GetStop)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/trips/{tripId}/stops/{stopId}", wrapper.UpdateStop)
 	})
 
 	return r
@@ -527,6 +776,158 @@ func (response UpdateTrip422JSONResponse) VisitUpdateTripResponse(w http.Respons
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListStopsRequestObject struct {
+	TripId openapi_types.UUID `json:"tripId"`
+}
+
+type ListStopsResponseObject interface {
+	VisitListStopsResponse(w http.ResponseWriter) error
+}
+
+type ListStops200JSONResponse []Stop
+
+func (response ListStops200JSONResponse) VisitListStopsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStops404JSONResponse ErrorResponse
+
+func (response ListStops404JSONResponse) VisitListStopsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStopRequestObject struct {
+	TripId openapi_types.UUID `json:"tripId"`
+	Body   *CreateStopJSONRequestBody
+}
+
+type CreateStopResponseObject interface {
+	VisitCreateStopResponse(w http.ResponseWriter) error
+}
+
+type CreateStop201JSONResponse Stop
+
+func (response CreateStop201JSONResponse) VisitCreateStopResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStop404JSONResponse ErrorResponse
+
+func (response CreateStop404JSONResponse) VisitCreateStopResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStop422JSONResponse ErrorResponse
+
+func (response CreateStop422JSONResponse) VisitCreateStopResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStopRequestObject struct {
+	TripId openapi_types.UUID `json:"tripId"`
+	StopId openapi_types.UUID `json:"stopId"`
+}
+
+type DeleteStopResponseObject interface {
+	VisitDeleteStopResponse(w http.ResponseWriter) error
+}
+
+type DeleteStop204Response struct {
+}
+
+func (response DeleteStop204Response) VisitDeleteStopResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteStop404JSONResponse ErrorResponse
+
+func (response DeleteStop404JSONResponse) VisitDeleteStopResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStopRequestObject struct {
+	TripId openapi_types.UUID `json:"tripId"`
+	StopId openapi_types.UUID `json:"stopId"`
+}
+
+type GetStopResponseObject interface {
+	VisitGetStopResponse(w http.ResponseWriter) error
+}
+
+type GetStop200JSONResponse Stop
+
+func (response GetStop200JSONResponse) VisitGetStopResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStop404JSONResponse ErrorResponse
+
+func (response GetStop404JSONResponse) VisitGetStopResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStopRequestObject struct {
+	TripId openapi_types.UUID `json:"tripId"`
+	StopId openapi_types.UUID `json:"stopId"`
+	Body   *UpdateStopJSONRequestBody
+}
+
+type UpdateStopResponseObject interface {
+	VisitUpdateStopResponse(w http.ResponseWriter) error
+}
+
+type UpdateStop200JSONResponse Stop
+
+func (response UpdateStop200JSONResponse) VisitUpdateStopResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStop404JSONResponse ErrorResponse
+
+func (response UpdateStop404JSONResponse) VisitUpdateStopResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStop422JSONResponse ErrorResponse
+
+func (response UpdateStop422JSONResponse) VisitUpdateStopResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Health check
@@ -547,6 +948,21 @@ type StrictServerInterface interface {
 	// Update a trip
 	// (PUT /trips/{id})
 	UpdateTrip(ctx context.Context, request UpdateTripRequestObject) (UpdateTripResponseObject, error)
+	// List all stops for a trip
+	// (GET /trips/{tripId}/stops)
+	ListStops(ctx context.Context, request ListStopsRequestObject) (ListStopsResponseObject, error)
+	// Create a stop on a trip
+	// (POST /trips/{tripId}/stops)
+	CreateStop(ctx context.Context, request CreateStopRequestObject) (CreateStopResponseObject, error)
+	// Delete a stop
+	// (DELETE /trips/{tripId}/stops/{stopId})
+	DeleteStop(ctx context.Context, request DeleteStopRequestObject) (DeleteStopResponseObject, error)
+	// Get a stop by ID
+	// (GET /trips/{tripId}/stops/{stopId})
+	GetStop(ctx context.Context, request GetStopRequestObject) (GetStopResponseObject, error)
+	// Update a stop
+	// (PUT /trips/{tripId}/stops/{stopId})
+	UpdateStop(ctx context.Context, request UpdateStopRequestObject) (UpdateStopResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -735,6 +1151,153 @@ func (sh *strictHandler) UpdateTrip(w http.ResponseWriter, r *http.Request, id o
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateTripResponseObject); ok {
 		if err := validResponse.VisitUpdateTripResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListStops operation middleware
+func (sh *strictHandler) ListStops(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID) {
+	var request ListStopsRequestObject
+
+	request.TripId = tripId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStops(ctx, request.(ListStopsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStops")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListStopsResponseObject); ok {
+		if err := validResponse.VisitListStopsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateStop operation middleware
+func (sh *strictHandler) CreateStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID) {
+	var request CreateStopRequestObject
+
+	request.TripId = tripId
+
+	var body CreateStopJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStop(ctx, request.(CreateStopRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStop")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateStopResponseObject); ok {
+		if err := validResponse.VisitCreateStopResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteStop operation middleware
+func (sh *strictHandler) DeleteStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, stopId openapi_types.UUID) {
+	var request DeleteStopRequestObject
+
+	request.TripId = tripId
+	request.StopId = stopId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteStop(ctx, request.(DeleteStopRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteStop")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteStopResponseObject); ok {
+		if err := validResponse.VisitDeleteStopResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetStop operation middleware
+func (sh *strictHandler) GetStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, stopId openapi_types.UUID) {
+	var request GetStopRequestObject
+
+	request.TripId = tripId
+	request.StopId = stopId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStop(ctx, request.(GetStopRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStop")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetStopResponseObject); ok {
+		if err := validResponse.VisitGetStopResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateStop operation middleware
+func (sh *strictHandler) UpdateStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, stopId openapi_types.UUID) {
+	var request UpdateStopRequestObject
+
+	request.TripId = tripId
+	request.StopId = stopId
+
+	var body UpdateStopJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateStop(ctx, request.(UpdateStopRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateStop")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateStopResponseObject); ok {
+		if err := validResponse.VisitUpdateStopResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

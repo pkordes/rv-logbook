@@ -24,20 +24,30 @@ type TripServicer interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
+// StopServicer defines the business operations the stop handler depends on.
+type StopServicer interface {
+	Create(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	GetByID(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
+	ListByTripID(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
+	Update(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	Delete(ctx context.Context, tripID, stopID uuid.UUID) error
+}
+
 // Server implements gen.StrictServerInterface for all API endpoints.
 // Wire it in main.go via gen.NewStrictHandler(server, nil).
 // Methods are in domain-specific files but all operate on this struct.
 type Server struct {
 	trips TripServicer
+	stops StopServicer
 }
 
 // NewServer constructs the Server with all its dependencies.
-func NewServer(trips TripServicer) *Server {
-	return &Server{trips: trips}
+func NewServer(trips TripServicer, stops StopServicer) *Server {
+	return &Server{trips: trips, stops: stops}
 }
 
 // NewHealthHandler returns a Server for health-check-only use.
 // Keeps existing handler tests compiling without modification.
 func NewHealthHandler() *Server {
-	return NewServer(nil)
+	return NewServer(nil, nil)
 }

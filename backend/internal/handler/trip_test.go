@@ -54,7 +54,7 @@ var _ handler.TripServicer = (*mockTripServicer)(nil)
 // newHTTPHandler wires a Server with the given mock into the generated chi router.
 // This mirrors exactly how main.go wires it in production.
 func newHTTPHandler(svc handler.TripServicer) http.Handler {
-	srv := handler.NewServer(svc)
+	srv := handler.NewServer(svc, nil)
 	return gen.Handler(gen.NewStrictHandler(srv, nil))
 }
 
