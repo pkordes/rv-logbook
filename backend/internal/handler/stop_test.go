@@ -59,7 +59,7 @@ var _ handler.StopServicer = (*mockStopServicer)(nil)
 
 // newStopHTTPHandler wires a Server with the given stop mock (no trip service needed).
 func newStopHTTPHandler(svc handler.StopServicer) http.Handler {
-	srv := handler.NewServer(nil, svc, nil)
+	srv := handler.NewServer(nil, svc, nil, nil)
 	return gen.Handler(gen.NewStrictHandler(srv, nil))
 }
 
