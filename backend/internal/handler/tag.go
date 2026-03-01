@@ -82,4 +82,3 @@ func tagToResponse(t domain.Tag) gen.Tag {
 		CreatedAt: t.CreatedAt,
 	}
 }
-

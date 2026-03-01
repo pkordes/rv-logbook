@@ -19,14 +19,14 @@ import (
 // mockStopServicer is a test double for handler.StopServicer.
 // Set only the method fields your test needs.
 type mockStopServicer struct {
-	create          func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
-	getByID         func(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
-	listByTripID    func(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
-	update          func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
-	delete          func(ctx context.Context, tripID, stopID uuid.UUID) error
-	addTag          func(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error)
-	removeTagFrom   func(ctx context.Context, stopID uuid.UUID, slug string) error
-	listTagsByStop  func(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
+	create         func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	getByID        func(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
+	listByTripID   func(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
+	update         func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	delete         func(ctx context.Context, tripID, stopID uuid.UUID) error
+	addTag         func(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error)
+	removeTagFrom  func(ctx context.Context, stopID uuid.UUID, slug string) error
+	listTagsByStop func(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
 }
 
 func (m *mockStopServicer) Create(ctx context.Context, s domain.Stop) (domain.Stop, error) {
