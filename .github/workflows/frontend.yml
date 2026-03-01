@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-lint:
-    name: Build & Lint
+    name: Frontend / Build & Lint
     runs-on: ubuntu-latest
 
     defaults:
