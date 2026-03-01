@@ -86,8 +86,9 @@ func main() {
 	// Wire the dependency chain: pool → repo → service → handler.
 	tripRepo := repo.NewTripRepo(pool)
 	stopRepo := repo.NewStopRepo(pool)
+	tagRepo := repo.NewTagRepo(pool)
 	tripService := service.NewTripService(tripRepo)
-	stopService := service.NewStopService(tripRepo, stopRepo)
+	stopService := service.NewStopService(tripRepo, stopRepo, tagRepo)
 	server := handler.NewServer(tripService, stopService)
 	r.Mount("/", gen.Handler(gen.NewStrictHandler(server, nil)))
 

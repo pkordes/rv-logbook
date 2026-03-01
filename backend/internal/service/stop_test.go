@@ -57,8 +57,9 @@ func validStop(tripID uuid.UUID) domain.Stop {
 }
 
 // newStopService constructs a StopService wired to the given mocks.
+// Pass nil for tagRepo when the test does not exercise tag operations.
 func newStopService(tripRepo repo.TripRepo, stopRepo repo.StopRepo) *service.StopService {
-	return service.NewStopService(tripRepo, stopRepo)
+	return service.NewStopService(tripRepo, stopRepo, nil)
 }
 
 // ---- Create ----------------------------------------------------------------
@@ -308,4 +309,174 @@ func TestStopService_Create_RepoError(t *testing.T) {
 	_, err := svc.Create(context.Background(), validStop(tripID))
 
 	assert.ErrorIs(t, err, repoErr)
+}
+
+// ---- AddTag ----------------------------------------------------------------
+
+func TestStopService_AddTag_OK(t *testing.T) {
+	stopID := uuid.New()
+	tagID := uuid.New()
+
+	svc := service.NewStopService(
+		&mockTripRepo{},
+		&mockStopRepo{},
+		&mockTagRepo{
+			upsert: func(_ context.Context, name, slug string) (domain.Tag, error) {
+				return domain.Tag{ID: tagID, Name: name, Slug: slug}, nil
+			},
+			addToStop: func(_ context.Context, sID, tID uuid.UUID) error {
+				assert.Equal(t, stopID, sID)
+				assert.Equal(t, tagID, tID)
+				return nil
+			},
+		},
+	)
+
+	got, err := svc.AddTag(context.Background(), stopID, "Rocky Mountains")
+
+	require.NoError(t, err)
+	assert.Equal(t, "rocky-mountains", got.Slug)
+	assert.Equal(t, tagID, got.ID)
+}
+
+func TestStopService_AddTag_NormalizesName(t *testing.T) {
+	var capturedSlug string
+	svc := service.NewStopService(
+		&mockTripRepo{},
+		&mockStopRepo{},
+		&mockTagRepo{
+			upsert: func(_ context.Context, _, slug string) (domain.Tag, error) {
+				capturedSlug = slug
+				return domain.Tag{ID: uuid.New(), Slug: slug}, nil
+			},
+			addToStop: func(_ context.Context, _, _ uuid.UUID) error { return nil },
+		},
+	)
+
+	_, err := svc.AddTag(context.Background(), uuid.New(), "WALMART")
+
+	require.NoError(t, err)
+	assert.Equal(t, "walmart", capturedSlug)
+}
+
+func TestStopService_AddTag_EmptyName(t *testing.T) {
+	svc := service.NewStopService(&mockTripRepo{}, &mockStopRepo{}, &mockTagRepo{})
+
+	_, err := svc.AddTag(context.Background(), uuid.New(), "   ")
+
+	assert.ErrorIs(t, err, domain.ErrValidation)
+}
+
+func TestStopService_AddTag_UpsertError(t *testing.T) {
+	repoErr := errors.New("upsert failed")
+	svc := service.NewStopService(
+		&mockTripRepo{},
+		&mockStopRepo{},
+		&mockTagRepo{
+			upsert: func(_ context.Context, _, _ string) (domain.Tag, error) {
+				return domain.Tag{}, repoErr
+			},
+		},
+	)
+
+	_, err := svc.AddTag(context.Background(), uuid.New(), "camping")
+
+	assert.ErrorIs(t, err, repoErr)
+}
+
+func TestStopService_AddTag_AddToStopError(t *testing.T) {
+	repoErr := errors.New("link failed")
+	svc := service.NewStopService(
+		&mockTripRepo{},
+		&mockStopRepo{},
+		&mockTagRepo{
+			upsert: func(_ context.Context, name, slug string) (domain.Tag, error) {
+				return domain.Tag{ID: uuid.New(), Slug: slug}, nil
+			},
+			addToStop: func(_ context.Context, _, _ uuid.UUID) error { return repoErr },
+		},
+	)
+
+	_, err := svc.AddTag(context.Background(), uuid.New(), "camping")
+
+	assert.ErrorIs(t, err, repoErr)
+}
+
+// ---- RemoveTagFromStop -----------------------------------------------------
+
+func TestStopService_RemoveTagFromStop_OK(t *testing.T) {
+	svc := service.NewStopService(
+		&mockTripRepo{},
+		&mockStopRepo{},
+		&mockTagRepo{
+			removeFromStop: func(_ context.Context, _ uuid.UUID, slug string) error {
+				assert.Equal(t, "camping", slug)
+				return nil
+			},
+		},
+	)
+
+	err := svc.RemoveTagFromStop(context.Background(), uuid.New(), "camping")
+
+	require.NoError(t, err)
+}
+
+func TestStopService_RemoveTagFromStop_NotFound(t *testing.T) {
+	svc := service.NewStopService(
+		&mockTripRepo{},
+		&mockStopRepo{},
+		&mockTagRepo{
+			removeFromStop: func(_ context.Context, _ uuid.UUID, _ string) error {
+				return domain.ErrNotFound
+			},
+		},
+	)
+
+	err := svc.RemoveTagFromStop(context.Background(), uuid.New(), "camping")
+
+	assert.ErrorIs(t, err, domain.ErrNotFound)
+}
+
+// ---- ListTagsByStop --------------------------------------------------------
+
+func TestStopService_ListTagsByStop_OK(t *testing.T) {
+	stopID := uuid.New()
+	expected := []domain.Tag{
+		{ID: uuid.New(), Slug: "camping"},
+		{ID: uuid.New(), Slug: "national-park"},
+	}
+
+	svc := service.NewStopService(
+		&mockTripRepo{},
+		&mockStopRepo{},
+		&mockTagRepo{
+			listByStop: func(_ context.Context, sID uuid.UUID) ([]domain.Tag, error) {
+				assert.Equal(t, stopID, sID)
+				return expected, nil
+			},
+		},
+	)
+
+	got, err := svc.ListTagsByStop(context.Background(), stopID)
+
+	require.NoError(t, err)
+	assert.Equal(t, expected, got)
+}
+
+func TestStopService_ListTagsByStop_ReturnsEmptySlice(t *testing.T) {
+	svc := service.NewStopService(
+		&mockTripRepo{},
+		&mockStopRepo{},
+		&mockTagRepo{
+			listByStop: func(_ context.Context, _ uuid.UUID) ([]domain.Tag, error) {
+				return nil, nil
+			},
+		},
+	)
+
+	got, err := svc.ListTagsByStop(context.Background(), uuid.New())
+
+	require.NoError(t, err)
+	assert.NotNil(t, got)
+	assert.Empty(t, got)
 }

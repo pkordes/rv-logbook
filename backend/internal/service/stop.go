@@ -12,16 +12,17 @@ import (
 )
 
 // StopService implements business logic for Stop operations.
-// It holds both repos because creating a stop requires verifying the parent
-// trip exists before inserting.
+// It holds trips, stops, and tags repos because creating a stop requires
+// verifying the parent trip exists, and tag operations are scoped to a stop.
 type StopService struct {
 	trips repo.TripRepo
 	stops repo.StopRepo
+	tags  repo.TagRepo
 }
 
 // NewStopService constructs a StopService backed by the provided repos.
-func NewStopService(trips repo.TripRepo, stops repo.StopRepo) *StopService {
-	return &StopService{trips: trips, stops: stops}
+func NewStopService(trips repo.TripRepo, stops repo.StopRepo, tags repo.TagRepo) *StopService {
+	return &StopService{trips: trips, stops: stops, tags: tags}
 }
 
 // Create validates the stop, verifies the parent trip exists, then persists.
@@ -85,6 +86,24 @@ func (s *StopService) Delete(ctx context.Context, tripID, stopID uuid.UUID) erro
 		return fmt.Errorf("service.StopService.Delete: %w", err)
 	}
 	return nil
+}
+
+// AddTag upserts a tag by name and links it to the given stop.
+// Returns domain.ErrValidation if tagName is empty or normalizes to empty.
+func (s *StopService) AddTag(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error) {
+	return domain.Tag{}, fmt.Errorf("not implemented")
+}
+
+// RemoveTagFromStop unlinks a tag from a stop by slug.
+// Returns domain.ErrNotFound if the tag is not linked to the stop.
+func (s *StopService) RemoveTagFromStop(ctx context.Context, stopID uuid.UUID, slug string) error {
+	return fmt.Errorf("not implemented")
+}
+
+// ListTagsByStop returns all tags linked to a stop, ordered by slug.
+// Always returns a non-nil slice so callers can safely range over it.
+func (s *StopService) ListTagsByStop(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 // validateStop enforces business rules common to both Create and Update.
