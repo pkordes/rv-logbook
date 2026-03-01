@@ -63,6 +63,21 @@ func NewSQLDB(t *testing.T) *sql.DB {
 	return db
 }
 
+// MustOpenSQLDB opens a *sql.DB for the given DSN and panics on any error.
+// Use this in TestMain functions where no *testing.T is available.
+// Callers are responsible for closing the returned *sql.DB.
+func MustOpenSQLDB(dsn string) *sql.DB {
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		panic("testutil.MustOpenSQLDB: open: " + err.Error())
+	}
+	if err := db.PingContext(context.Background()); err != nil {
+		db.Close()
+		panic("testutil.MustOpenSQLDB: ping: " + err.Error())
+	}
+	return db
+}
+
 // requireDSN returns the TEST_DATABASE_URL environment variable value,
 // skipping the test if it is not set.
 func requireDSN(t *testing.T) string {
