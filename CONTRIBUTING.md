@@ -103,7 +103,10 @@ make frontend/dev
 | `make help` | List all available targets |
 | `make backend/run` | Start the Go API server |
 | `make backend/build` | Compile Go binary to `backend/bin/api` |
-| `make backend/test` | Run all Go tests (race detector enabled) |
+| `make backend/check` | Compile all packages without producing a binary (fast refactor check) |
+| `make backend/test` | Run all Go tests — all packages, DB required |
+| `make backend/test/service` | Run service-layer unit tests only (no DB — fast TDD loop) |
+| `make backend/test/handler` | Run handler-layer unit tests only (no DB — fast TDD loop) |
 | `make backend/lint` | Run `go vet` + `staticcheck` |
 | `make backend/generate` | Regenerate Go stubs from `openapi.yaml` |
 | `make frontend/dev` | Start Vite dev server (port 5173) |

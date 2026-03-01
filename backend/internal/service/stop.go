@@ -12,16 +12,17 @@ import (
 )
 
 // StopService implements business logic for Stop operations.
-// It holds both repos because creating a stop requires verifying the parent
-// trip exists before inserting.
+// It holds trips, stops, and tags repos because creating a stop requires
+// verifying the parent trip exists, and tag operations are scoped to a stop.
 type StopService struct {
 	trips repo.TripRepo
 	stops repo.StopRepo
+	tags  repo.TagRepo
 }
 
 // NewStopService constructs a StopService backed by the provided repos.
-func NewStopService(trips repo.TripRepo, stops repo.StopRepo) *StopService {
-	return &StopService{trips: trips, stops: stops}
+func NewStopService(trips repo.TripRepo, stops repo.StopRepo, tags repo.TagRepo) *StopService {
+	return &StopService{trips: trips, stops: stops, tags: tags}
 }
 
 // Create validates the stop, verifies the parent trip exists, then persists.
@@ -85,6 +86,51 @@ func (s *StopService) Delete(ctx context.Context, tripID, stopID uuid.UUID) erro
 		return fmt.Errorf("service.StopService.Delete: %w", err)
 	}
 	return nil
+}
+
+// AddTag upserts a tag by name and links it to the given stop.
+// The name is normalized to a slug using the same rules as TagService.
+// Returns domain.ErrValidation if tagName is empty or normalizes to empty.
+func (s *StopService) AddTag(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error) {
+	tagName = strings.TrimSpace(tagName)
+	if tagName == "" {
+		return domain.Tag{}, fmt.Errorf("%w: tag name is required", domain.ErrValidation)
+	}
+	slug := toSlug(tagName)
+	if slug == "" {
+		return domain.Tag{}, fmt.Errorf("%w: tag name contains no usable characters", domain.ErrValidation)
+	}
+
+	tag, err := s.tags.Upsert(ctx, tagName, slug)
+	if err != nil {
+		return domain.Tag{}, fmt.Errorf("service.StopService.AddTag: %w", err)
+	}
+	if err := s.tags.AddToStop(ctx, stopID, tag.ID); err != nil {
+		return domain.Tag{}, fmt.Errorf("service.StopService.AddTag: %w", err)
+	}
+	return tag, nil
+}
+
+// RemoveTagFromStop unlinks a tag from a stop by slug.
+// Returns domain.ErrNotFound if the tag is not linked to the stop.
+func (s *StopService) RemoveTagFromStop(ctx context.Context, stopID uuid.UUID, slug string) error {
+	if err := s.tags.RemoveFromStop(ctx, stopID, slug); err != nil {
+		return fmt.Errorf("service.StopService.RemoveTagFromStop: %w", err)
+	}
+	return nil
+}
+
+// ListTagsByStop returns all tags linked to a stop, ordered by slug.
+// Always returns a non-nil slice so callers can safely range over it.
+func (s *StopService) ListTagsByStop(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error) {
+	tags, err := s.tags.ListByStop(ctx, stopID)
+	if err != nil {
+		return nil, fmt.Errorf("service.StopService.ListTagsByStop: %w", err)
+	}
+	if tags == nil {
+		return []domain.Tag{}, nil
+	}
+	return tags, nil
 }
 
 // validateStop enforces business rules common to both Create and Update.

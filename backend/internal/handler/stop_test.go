@@ -19,11 +19,14 @@ import (
 // mockStopServicer is a test double for handler.StopServicer.
 // Set only the method fields your test needs.
 type mockStopServicer struct {
-	create       func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
-	getByID      func(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
-	listByTripID func(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
-	update       func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
-	delete       func(ctx context.Context, tripID, stopID uuid.UUID) error
+	create         func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	getByID        func(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
+	listByTripID   func(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
+	update         func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	delete         func(ctx context.Context, tripID, stopID uuid.UUID) error
+	addTag         func(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error)
+	removeTagFrom  func(ctx context.Context, stopID uuid.UUID, slug string) error
+	listTagsByStop func(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
 }
 
 func (m *mockStopServicer) Create(ctx context.Context, s domain.Stop) (domain.Stop, error) {
@@ -41,13 +44,22 @@ func (m *mockStopServicer) Update(ctx context.Context, s domain.Stop) (domain.St
 func (m *mockStopServicer) Delete(ctx context.Context, tripID, stopID uuid.UUID) error {
 	return m.delete(ctx, tripID, stopID)
 }
+func (m *mockStopServicer) AddTag(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error) {
+	return m.addTag(ctx, stopID, tagName)
+}
+func (m *mockStopServicer) RemoveTagFromStop(ctx context.Context, stopID uuid.UUID, slug string) error {
+	return m.removeTagFrom(ctx, stopID, slug)
+}
+func (m *mockStopServicer) ListTagsByStop(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error) {
+	return m.listTagsByStop(ctx, stopID)
+}
 
 // compile-time check: mockStopServicer must satisfy handler.StopServicer.
 var _ handler.StopServicer = (*mockStopServicer)(nil)
 
 // newStopHTTPHandler wires a Server with the given stop mock (no trip service needed).
 func newStopHTTPHandler(svc handler.StopServicer) http.Handler {
-	srv := handler.NewServer(nil, svc)
+	srv := handler.NewServer(nil, svc, nil)
 	return gen.Handler(gen.NewStrictHandler(srv, nil))
 }
 

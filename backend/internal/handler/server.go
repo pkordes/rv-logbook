@@ -31,6 +31,14 @@ type StopServicer interface {
 	ListByTripID(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
 	Update(ctx context.Context, stop domain.Stop) (domain.Stop, error)
 	Delete(ctx context.Context, tripID, stopID uuid.UUID) error
+	AddTag(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error)
+	RemoveTagFromStop(ctx context.Context, stopID uuid.UUID, slug string) error
+	ListTagsByStop(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
+}
+
+// TagServicer defines the business operations the tag handler depends on.
+type TagServicer interface {
+	List(ctx context.Context, prefix string) ([]domain.Tag, error)
 }
 
 // Server implements gen.StrictServerInterface for all API endpoints.
@@ -39,15 +47,16 @@ type StopServicer interface {
 type Server struct {
 	trips TripServicer
 	stops StopServicer
+	tags  TagServicer
 }
 
 // NewServer constructs the Server with all its dependencies.
-func NewServer(trips TripServicer, stops StopServicer) *Server {
-	return &Server{trips: trips, stops: stops}
+func NewServer(trips TripServicer, stops StopServicer, tags TagServicer) *Server {
+	return &Server{trips: trips, stops: stops, tags: tags}
 }
 
 // NewHealthHandler returns a Server for health-check-only use.
 // Keeps existing handler tests compiling without modification.
 func NewHealthHandler() *Server {
-	return NewServer(nil, nil)
+	return NewServer(nil, nil, nil)
 }
