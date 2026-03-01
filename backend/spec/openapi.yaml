@@ -20,6 +20,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
 
+  /export:
+    get:
+      operationId: GetExport
+      summary: Export all trips, stops, and tags as a flat table
+      description: |
+        Returns one row per stop across all trips, with trip fields repeated per stop.
+        Trips with no stops yield one row with empty stop fields.
+        Responds with JSON (default) or CSV depending on the Accept header or ?format param.
+      tags:
+        - export
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, csv]
+          description: Response format. Overrides the Accept header when provided.
+      responses:
+        "200":
+          description: Export data — one row per stop.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExportRow"
+            text/csv:
+              schema:
+                type: string
+
   /tags:
     get:
       operationId: ListTags
@@ -627,3 +658,50 @@ components:
         name:
           type: string
           example: "National Park"
+
+    ExportRow:
+      type: object
+      required:
+        - trip_id
+        - trip_name
+        - trip_start_date
+        - tags
+      properties:
+        trip_id:
+          type: string
+          format: uuid
+        trip_name:
+          type: string
+          example: "Summer Tour 2025"
+        trip_start_date:
+          type: string
+          format: date
+          example: "2025-06-01"
+        trip_end_date:
+          type: string
+          format: date
+          example: "2025-06-15"
+          nullable: true
+        stop_name:
+          type: string
+          example: "Yellowstone Camp"
+        stop_location:
+          type: string
+          example: "Yellowstone, WY"
+          nullable: true
+        arrived_at:
+          type: string
+          format: date-time
+          nullable: true
+        departed_at:
+          type: string
+          format: date-time
+          nullable: true
+        stop_notes:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["camping", "national-park"]

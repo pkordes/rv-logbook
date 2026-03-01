@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -15,6 +16,24 @@ import (
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for GetExportParamsFormat.
+const (
+	Csv  GetExportParamsFormat = "csv"
+	Json GetExportParamsFormat = "json"
+)
+
+// Valid indicates whether the value is a known member of the GetExportParamsFormat enum.
+func (e GetExportParamsFormat) Valid() bool {
+	switch e {
+	case Csv:
+		return true
+	case Json:
+		return true
+	default:
+		return false
+	}
+}
 
 // AddTagRequest defines model for AddTagRequest.
 type AddTagRequest struct {
@@ -41,6 +60,20 @@ type CreateTripRequest struct {
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+// ExportRow defines model for ExportRow.
+type ExportRow struct {
+	ArrivedAt     *time.Time          `json:"arrived_at,omitempty"`
+	DepartedAt    *time.Time          `json:"departed_at,omitempty"`
+	StopLocation  *string             `json:"stop_location,omitempty"`
+	StopName      *string             `json:"stop_name,omitempty"`
+	StopNotes     *string             `json:"stop_notes,omitempty"`
+	Tags          []string            `json:"tags"`
+	TripEndDate   *openapi_types.Date `json:"trip_end_date,omitempty"`
+	TripId        openapi_types.UUID  `json:"trip_id"`
+	TripName      string              `json:"trip_name"`
+	TripStartDate openapi_types.Date  `json:"trip_start_date"`
 }
 
 // HealthResponse defines model for HealthResponse.
@@ -97,6 +130,15 @@ type UpdateTripRequest struct {
 	StartDate openapi_types.Date  `json:"start_date"`
 }
 
+// GetExportParams defines parameters for GetExport.
+type GetExportParams struct {
+	// Format Response format. Overrides the Accept header when provided.
+	Format *GetExportParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+}
+
+// GetExportParamsFormat defines parameters for GetExport.
+type GetExportParamsFormat string
+
 // ListTagsParams defines parameters for ListTags.
 type ListTagsParams struct {
 	// Q Filter by slug prefix (case-insensitive).
@@ -120,6 +162,9 @@ type AddTagToStopJSONRequestBody = AddTagRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Export all trips, stops, and tags as a flat table
+	// (GET /export)
+	GetExport(w http.ResponseWriter, r *http.Request, params GetExportParams)
 	// Health check
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -170,6 +215,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Export all trips, stops, and tags as a flat table
+// (GET /export)
+func (_ Unimplemented) GetExport(w http.ResponseWriter, r *http.Request, params GetExportParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Health check
 // (GET /healthz)
@@ -269,6 +320,33 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetExport operation middleware
+func (siw *ServerInterfaceWrapper) GetExport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetExportParams
+
+	// ------------- Optional query parameter "format" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "format", r.URL.Query(), &params.Format, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "format", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExport(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetHealth operation middleware
 func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
@@ -791,6 +869,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/export", wrapper.GetExport)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/healthz", wrapper.GetHealth)
 	})
 	r.Group(func(r chi.Router) {
@@ -837,6 +918,42 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 
 	return r
+}
+
+type GetExportRequestObject struct {
+	Params GetExportParams
+}
+
+type GetExportResponseObject interface {
+	VisitGetExportResponse(w http.ResponseWriter) error
+}
+
+type GetExport200JSONResponse []ExportRow
+
+func (response GetExport200JSONResponse) VisitGetExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetExport200TextcsvResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response GetExport200TextcsvResponse) VisitGetExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
 }
 
 type GetHealthRequestObject struct {
@@ -1246,6 +1363,9 @@ func (response RemoveTagFromStop404JSONResponse) VisitRemoveTagFromStopResponse(
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Export all trips, stops, and tags as a flat table
+	// (GET /export)
+	GetExport(ctx context.Context, request GetExportRequestObject) (GetExportResponseObject, error)
 	// Health check
 	// (GET /healthz)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
@@ -1320,6 +1440,32 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetExport operation middleware
+func (sh *strictHandler) GetExport(w http.ResponseWriter, r *http.Request, params GetExportParams) {
+	var request GetExportRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetExport(ctx, request.(GetExportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetExport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetExportResponseObject); ok {
+		if err := validResponse.VisitGetExportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetHealth operation middleware
