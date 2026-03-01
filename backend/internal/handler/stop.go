@@ -24,10 +24,10 @@ func (s *Server) CreateStop(ctx context.Context, req gen.CreateStopRequestObject
 	created, err := s.stops.Create(ctx, stop)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.CreateStop404JSONResponse{Error: gen.ErrorDetail{Message: "trip not found"}}, nil
+			return gen.CreateStop404JSONResponse(notFoundBody("trip not found")), nil
 		}
 		if errors.Is(err, domain.ErrValidation) {
-			return gen.CreateStop422JSONResponse{Error: gen.ErrorDetail{Message: unwrapMessage(err)}}, nil
+			return gen.CreateStop422JSONResponse(validationBody(err)), nil
 		}
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (s *Server) GetStop(ctx context.Context, req gen.GetStopRequestObject) (gen
 	stop, err := s.stops.GetByID(ctx, req.TripId, req.StopId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.GetStop404JSONResponse{Error: gen.ErrorDetail{Message: "stop not found"}}, nil
+			return gen.GetStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		return nil, err
 	}
@@ -77,10 +77,10 @@ func (s *Server) UpdateStop(ctx context.Context, req gen.UpdateStopRequestObject
 	updated, err := s.stops.Update(ctx, stop)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.UpdateStop404JSONResponse{Error: gen.ErrorDetail{Message: "stop not found"}}, nil
+			return gen.UpdateStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		if errors.Is(err, domain.ErrValidation) {
-			return gen.UpdateStop422JSONResponse{Error: gen.ErrorDetail{Message: unwrapMessage(err)}}, nil
+			return gen.UpdateStop422JSONResponse(validationBody(err)), nil
 		}
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (s *Server) DeleteStop(ctx context.Context, req gen.DeleteStopRequestObject
 	err := s.stops.Delete(ctx, req.TripId, req.StopId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.DeleteStop404JSONResponse{Error: gen.ErrorDetail{Message: "stop not found"}}, nil
+			return gen.DeleteStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		return nil, err
 	}

@@ -32,7 +32,7 @@ func (s *Server) ListTagsByStop(ctx context.Context, req gen.ListTagsByStopReque
 	tags, err := s.stops.ListTagsByStop(ctx, req.StopId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.ListTagsByStop404JSONResponse{Error: gen.ErrorDetail{Message: "stop not found"}}, nil
+			return gen.ListTagsByStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		return nil, err
 	}
@@ -49,10 +49,10 @@ func (s *Server) AddTagToStop(ctx context.Context, req gen.AddTagToStopRequestOb
 	tag, err := s.stops.AddTag(ctx, req.StopId, req.Body.Name)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.AddTagToStop404JSONResponse{Error: gen.ErrorDetail{Message: "stop not found"}}, nil
+			return gen.AddTagToStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		if errors.Is(err, domain.ErrValidation) {
-			return gen.AddTagToStop422JSONResponse{Error: gen.ErrorDetail{Message: unwrapMessage(err)}}, nil
+			return gen.AddTagToStop422JSONResponse(validationBody(err)), nil
 		}
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (s *Server) RemoveTagFromStop(ctx context.Context, req gen.RemoveTagFromSto
 	err := s.stops.RemoveTagFromStop(ctx, req.StopId, req.Slug)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.RemoveTagFromStop404JSONResponse{Error: gen.ErrorDetail{Message: "tag not linked to stop"}}, nil
+			return gen.RemoveTagFromStop404JSONResponse(notFoundBody("tag not linked to stop")), nil
 		}
 		return nil, err
 	}
