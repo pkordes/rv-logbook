@@ -41,6 +41,10 @@ type TripRepo interface {
 	// List returns all trips ordered by start_date descending.
 	List(ctx context.Context) ([]domain.Trip, error)
 
+	// ListPaged returns one page of trips and the total count across all pages.
+	// Results are ordered by start_date descending.
+	ListPaged(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error)
+
 	// Update overwrites the mutable fields of an existing trip and returns the
 	// updated record. Returns domain.ErrNotFound if no trip with that ID exists.
 	Update(ctx context.Context, trip domain.Trip) (domain.Trip, error)
@@ -123,6 +127,46 @@ func (r *pgTripRepo) List(ctx context.Context) ([]domain.Trip, error) {
 	}
 
 	return trips, nil
+}
+
+// ListPaged returns one page of trips ordered by start_date descending,
+// together with the total number of trips across all pages.
+func (r *pgTripRepo) ListPaged(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error) {
+	const countQ = `SELECT COUNT(*) FROM trips`
+
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("repo.TripRepo.ListPaged: count: %w", err)
+	}
+
+	const q = `
+		SELECT id, name, start_date, end_date, notes, created_at, updated_at
+		FROM trips
+		ORDER BY start_date DESC
+		LIMIT @limit OFFSET @offset`
+
+	rows, err := r.db.Query(ctx, q, pgx.NamedArgs{
+		"limit":  p.Limit,
+		"offset": p.Offset(),
+	})
+	if err != nil {
+		return nil, 0, fmt.Errorf("repo.TripRepo.ListPaged: query: %w", err)
+	}
+	defer rows.Close()
+
+	trips := []domain.Trip{}
+	for rows.Next() {
+		t, err := scanTrip(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("repo.TripRepo.ListPaged: scan: %w", err)
+		}
+		trips = append(trips, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("repo.TripRepo.ListPaged: rows: %w", err)
+	}
+
+	return trips, total, nil
 }
 
 // Update overwrites the mutable fields of a trip and returns the updated record.

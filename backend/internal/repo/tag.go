@@ -22,6 +22,10 @@ type TagRepo interface {
 	// If prefix is empty, all tags are returned.
 	List(ctx context.Context, prefix string) ([]domain.Tag, error)
 
+	// ListPaged returns one page of tags matching the slug prefix and the total count.
+	// If prefix is empty, all tags are included in the result set.
+	ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
+
 	// AddToStop links a tag to a stop. Idempotent — no error if already linked.
 	AddToStop(ctx context.Context, stopID, tagID uuid.UUID) error
 
@@ -89,6 +93,49 @@ func (r *pgTagRepo) List(ctx context.Context, prefix string) ([]domain.Tag, erro
 		return nil, fmt.Errorf("repo.TagRepo.List: rows: %w", err)
 	}
 	return tags, nil
+}
+
+// ListPaged returns one page of tags whose slug starts with prefix, ordered by slug,
+// together with the total matching count across all pages.
+// Pass prefix="" to include all tags.
+func (r *pgTagRepo) ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error) {
+	const countQ = `SELECT COUNT(*) FROM tags WHERE slug LIKE @prefix || '%'`
+
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, pgx.NamedArgs{"prefix": prefix}).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("repo.TagRepo.ListPaged: count: %w", err)
+	}
+
+	const q = `
+		SELECT id, name, slug, created_at
+		FROM tags
+		WHERE slug LIKE @prefix || '%'
+		ORDER BY slug
+		LIMIT @limit OFFSET @offset`
+
+	rows, err := r.db.Query(ctx, q, pgx.NamedArgs{
+		"prefix": prefix,
+		"limit":  p.Limit,
+		"offset": p.Offset(),
+	})
+	if err != nil {
+		return nil, 0, fmt.Errorf("repo.TagRepo.ListPaged: query: %w", err)
+	}
+	defer rows.Close()
+
+	tags := []domain.Tag{}
+	for rows.Next() {
+		tag, err := scanTag(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("repo.TagRepo.ListPaged: scan: %w", err)
+		}
+		tags = append(tags, tag)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("repo.TagRepo.ListPaged: rows: %w", err)
+	}
+
+	return tags, total, nil
 }
 
 // AddToStop links a tag to a stop. Idempotent via ON CONFLICT DO NOTHING.

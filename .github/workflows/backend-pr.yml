@@ -1,0 +1,78 @@
+# PR CI — runs when a pull request targets main.
+# Goal: gate quality before merging. Re-runs fast checks on the merge commit
+# and adds slower checks that require a baseline (oasdiff) or infrastructure
+# (integration tests, added in Phase 8).
+name: Backend PR
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Re-run the same fast checks as the branch workflow on the actual merge
+  # commit. A branch can be clean while the combined merge introduces an issue.
+  unit-tests:
+    name: Backend / Vet, Build & Unit Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Unit tests
+        run: go test -race -count=1 -short ./...
+
+  # oasdiff compares the PR's openapi.yaml against the main baseline and fails
+  # the build if any breaking changes are detected. This check only makes sense
+  # at PR time — there is no meaningful baseline to diff against on a branch push.
+  breaking-api-changes:
+    name: Backend / No Breaking API Changes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Install oasdiff
+        run: go install github.com/oasdiff/oasdiff@latest
+
+      # Fetch only the tip of main — enough to extract the baseline spec.
+      - name: Fetch main for baseline
+        run: git fetch origin main --depth=1
+
+      - name: Check for breaking changes
+        run: |
+          git show origin/main:backend/spec/openapi.yaml > /tmp/openapi-base.yaml
+          oasdiff breaking /tmp/openapi-base.yaml backend/spec/openapi.yaml
+
+  # integration-tests:
+  #   name: Backend / Integration Tests
+  #   # Added in Phase 8 once migrations are stable.
+  #   # Requires a Postgres service container — acceptable at PR time, not branch.
+  #   runs-on: ubuntu-latest
+  #   services:
+  #     postgres:
+  #       image: postgres:16
+  #       ...

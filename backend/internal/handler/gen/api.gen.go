@@ -57,9 +57,18 @@ type CreateTripRequest struct {
 	StartDate openapi_types.Date  `json:"start_date"`
 }
 
+// ErrorDetail defines model for ErrorDetail.
+type ErrorDetail struct {
+	// Code Machine-readable error code for client branching.
+	Code string `json:"code"`
+
+	// Message Human-readable description of the error.
+	Message string `json:"message"`
+}
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
-	Error string `json:"error"`
+	Error ErrorDetail `json:"error"`
 }
 
 // ExportRow defines model for ExportRow.
@@ -81,6 +90,15 @@ type HealthResponse struct {
 	Status string `json:"status"`
 }
 
+// Pagination Pagination metadata returned with every list response.
+type Pagination struct {
+	Limit int `json:"limit"`
+	Page  int `json:"page"`
+
+	// Total Total number of items matching the query (across all pages).
+	Total int `json:"total"`
+}
+
 // Stop defines model for Stop.
 type Stop struct {
 	ArrivedAt  time.Time          `json:"arrived_at"`
@@ -94,12 +112,28 @@ type Stop struct {
 	UpdatedAt  time.Time          `json:"updated_at"`
 }
 
+// StopList defines model for StopList.
+type StopList struct {
+	Data []Stop `json:"data"`
+
+	// Pagination Pagination metadata returned with every list response.
+	Pagination Pagination `json:"pagination"`
+}
+
 // Tag defines model for Tag.
 type Tag struct {
 	CreatedAt time.Time          `json:"created_at"`
 	Id        openapi_types.UUID `json:"id"`
 	Name      string             `json:"name"`
 	Slug      string             `json:"slug"`
+}
+
+// TagList defines model for TagList.
+type TagList struct {
+	Data []Tag `json:"data"`
+
+	// Pagination Pagination metadata returned with every list response.
+	Pagination Pagination `json:"pagination"`
 }
 
 // Trip defines model for Trip.
@@ -111,6 +145,14 @@ type Trip struct {
 	Notes     *string             `json:"notes,omitempty"`
 	StartDate openapi_types.Date  `json:"start_date"`
 	UpdatedAt time.Time           `json:"updated_at"`
+}
+
+// TripList defines model for TripList.
+type TripList struct {
+	Data []Trip `json:"data"`
+
+	// Pagination Pagination metadata returned with every list response.
+	Pagination Pagination `json:"pagination"`
 }
 
 // UpdateStopRequest defines model for UpdateStopRequest.
@@ -143,6 +185,30 @@ type GetExportParamsFormat string
 type ListTagsParams struct {
 	// Q Filter by slug prefix (case-insensitive).
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// Page Page number (1-indexed).
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// Limit Number of items per page (max 100).
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListTripsParams defines parameters for ListTrips.
+type ListTripsParams struct {
+	// Page Page number (1-indexed).
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// Limit Number of items per page (max 100).
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListStopsParams defines parameters for ListStops.
+type ListStopsParams struct {
+	// Page Page number (1-indexed).
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// Limit Number of items per page (max 100).
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // CreateTripJSONRequestBody defines body for CreateTrip for application/json ContentType.
@@ -173,7 +239,7 @@ type ServerInterface interface {
 	ListTags(w http.ResponseWriter, r *http.Request, params ListTagsParams)
 	// List all trips
 	// (GET /trips)
-	ListTrips(w http.ResponseWriter, r *http.Request)
+	ListTrips(w http.ResponseWriter, r *http.Request, params ListTripsParams)
 	// Create a trip
 	// (POST /trips)
 	CreateTrip(w http.ResponseWriter, r *http.Request)
@@ -188,7 +254,7 @@ type ServerInterface interface {
 	UpdateTrip(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// List all stops for a trip
 	// (GET /trips/{tripId}/stops)
-	ListStops(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID)
+	ListStops(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, params ListStopsParams)
 	// Create a stop on a trip
 	// (POST /trips/{tripId}/stops)
 	CreateStop(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID)
@@ -236,7 +302,7 @@ func (_ Unimplemented) ListTags(w http.ResponseWriter, r *http.Request, params L
 
 // List all trips
 // (GET /trips)
-func (_ Unimplemented) ListTrips(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListTrips(w http.ResponseWriter, r *http.Request, params ListTripsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -266,7 +332,7 @@ func (_ Unimplemented) UpdateTrip(w http.ResponseWriter, r *http.Request, id ope
 
 // List all stops for a trip
 // (GET /trips/{tripId}/stops)
-func (_ Unimplemented) ListStops(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID) {
+func (_ Unimplemented) ListStops(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, params ListStopsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -378,6 +444,22 @@ func (siw *ServerInterfaceWrapper) ListTags(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListTags(w, r, params)
 	}))
@@ -392,8 +474,29 @@ func (siw *ServerInterfaceWrapper) ListTags(w http.ResponseWriter, r *http.Reque
 // ListTrips operation middleware
 func (siw *ServerInterfaceWrapper) ListTrips(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTripsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListTrips(w, r)
+		siw.Handler.ListTrips(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -506,8 +609,27 @@ func (siw *ServerInterfaceWrapper) ListStops(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStopsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListStops(w, r, tripId)
+		siw.Handler.ListStops(w, r, tripId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -980,7 +1102,7 @@ type ListTagsResponseObject interface {
 	VisitListTagsResponse(w http.ResponseWriter) error
 }
 
-type ListTags200JSONResponse []Tag
+type ListTags200JSONResponse TagList
 
 func (response ListTags200JSONResponse) VisitListTagsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -990,13 +1112,14 @@ func (response ListTags200JSONResponse) VisitListTagsResponse(w http.ResponseWri
 }
 
 type ListTripsRequestObject struct {
+	Params ListTripsParams
 }
 
 type ListTripsResponseObject interface {
 	VisitListTripsResponse(w http.ResponseWriter) error
 }
 
-type ListTrips200JSONResponse []Trip
+type ListTrips200JSONResponse TripList
 
 func (response ListTrips200JSONResponse) VisitListTripsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -1120,13 +1243,14 @@ func (response UpdateTrip422JSONResponse) VisitUpdateTripResponse(w http.Respons
 
 type ListStopsRequestObject struct {
 	TripId openapi_types.UUID `json:"tripId"`
+	Params ListStopsParams
 }
 
 type ListStopsResponseObject interface {
 	VisitListStopsResponse(w http.ResponseWriter) error
 }
 
-type ListStops200JSONResponse []Stop
+type ListStops200JSONResponse StopList
 
 func (response ListStops200JSONResponse) VisitListStopsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -1519,8 +1643,10 @@ func (sh *strictHandler) ListTags(w http.ResponseWriter, r *http.Request, params
 }
 
 // ListTrips operation middleware
-func (sh *strictHandler) ListTrips(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) ListTrips(w http.ResponseWriter, r *http.Request, params ListTripsParams) {
 	var request ListTripsRequestObject
+
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.ListTrips(ctx, request.(ListTripsRequestObject))
@@ -1659,10 +1785,11 @@ func (sh *strictHandler) UpdateTrip(w http.ResponseWriter, r *http.Request, id o
 }
 
 // ListStops operation middleware
-func (sh *strictHandler) ListStops(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID) {
+func (sh *strictHandler) ListStops(w http.ResponseWriter, r *http.Request, tripId openapi_types.UUID, params ListStopsParams) {
 	var request ListStopsRequestObject
 
 	request.TripId = tripId
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.ListStops(ctx, request.(ListStopsRequestObject))

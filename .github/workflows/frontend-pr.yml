@@ -1,0 +1,44 @@
+# PR CI — runs when a pull request targets main.
+# Goal: confirm the merge commit is clean and gate on any PR-only checks.
+# Re-runs the same fast checks as the branch workflow on the actual merge commit.
+# Playwright E2E tests will be added here in Phase 9 (they need a running stack).
+name: Frontend PR
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-lint:
+    name: Frontend / Type-check, Build & Lint
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check & Build
+        run: npm run build
+
+  # e2e:
+  #   name: Frontend / E2E (Playwright)
+  #   # Added in Phase 9 — requires the full stack (API + DB) to be running.
+  #   # Lives in the PR tier because E2E catches integration regressions that
+  #   # unit tests cannot, but the cost (minutes) is only acceptable at PR time.

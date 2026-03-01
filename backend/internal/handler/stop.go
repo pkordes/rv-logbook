@@ -24,10 +24,10 @@ func (s *Server) CreateStop(ctx context.Context, req gen.CreateStopRequestObject
 	created, err := s.stops.Create(ctx, stop)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.CreateStop404JSONResponse{Error: "trip not found"}, nil
+			return gen.CreateStop404JSONResponse(notFoundBody("trip not found")), nil
 		}
 		if errors.Is(err, domain.ErrValidation) {
-			return gen.CreateStop422JSONResponse{Error: unwrapMessage(err)}, nil
+			return gen.CreateStop422JSONResponse(validationBody(err)), nil
 		}
 		return nil, err
 	}
@@ -36,17 +36,26 @@ func (s *Server) CreateStop(ctx context.Context, req gen.CreateStopRequestObject
 }
 
 // ListStops handles GET /trips/{tripId}/stops.
+// Supports ?page= and ?limit= query parameters (defaults: page=1, limit=20, max=100).
 func (s *Server) ListStops(ctx context.Context, req gen.ListStopsRequestObject) (gen.ListStopsResponseObject, error) {
-	stops, err := s.stops.ListByTripID(ctx, req.TripId)
+	params := domain.NewPaginationParams(req.Params.Page, req.Params.Limit)
+	stops, total, err := s.stops.ListByTripIDPaged(ctx, req.TripId, params)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]gen.Stop, len(stops))
+	data := make([]gen.Stop, len(stops))
 	for i, st := range stops {
-		resp[i] = stopToResponse(st)
+		data[i] = stopToResponse(st)
 	}
-	return gen.ListStops200JSONResponse(resp), nil
+	return gen.ListStops200JSONResponse{
+		Data: data,
+		Pagination: gen.Pagination{
+			Page:  params.Page,
+			Limit: params.Limit,
+			Total: int(total),
+		},
+	}, nil
 }
 
 // GetStop handles GET /trips/{tripId}/stops/{stopId}.
@@ -54,7 +63,7 @@ func (s *Server) GetStop(ctx context.Context, req gen.GetStopRequestObject) (gen
 	stop, err := s.stops.GetByID(ctx, req.TripId, req.StopId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.GetStop404JSONResponse{Error: "stop not found"}, nil
+			return gen.GetStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		return nil, err
 	}
@@ -77,10 +86,10 @@ func (s *Server) UpdateStop(ctx context.Context, req gen.UpdateStopRequestObject
 	updated, err := s.stops.Update(ctx, stop)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.UpdateStop404JSONResponse{Error: "stop not found"}, nil
+			return gen.UpdateStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		if errors.Is(err, domain.ErrValidation) {
-			return gen.UpdateStop422JSONResponse{Error: unwrapMessage(err)}, nil
+			return gen.UpdateStop422JSONResponse(validationBody(err)), nil
 		}
 		return nil, err
 	}
@@ -93,7 +102,7 @@ func (s *Server) DeleteStop(ctx context.Context, req gen.DeleteStopRequestObject
 	err := s.stops.Delete(ctx, req.TripId, req.StopId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.DeleteStop404JSONResponse{Error: "stop not found"}, nil
+			return gen.DeleteStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		return nil, err
 	}

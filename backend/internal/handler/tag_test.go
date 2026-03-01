@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -20,11 +21,15 @@ import (
 // ---- mock TagServicer -------------------------------------------------------
 
 type mockTagServicer struct {
-	list func(ctx context.Context, prefix string) ([]domain.Tag, error)
+	list      func(ctx context.Context, prefix string) ([]domain.Tag, error)
+	listPaged func(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
 }
 
 func (m *mockTagServicer) List(ctx context.Context, prefix string) ([]domain.Tag, error) {
 	return m.list(ctx, prefix)
+}
+func (m *mockTagServicer) ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error) {
+	return m.listPaged(ctx, prefix, p)
 }
 
 // compile-time check: mockTagServicer must satisfy handler.TagServicer.
@@ -53,9 +58,9 @@ func tagFixture() domain.Tag {
 func TestListTags_200(t *testing.T) {
 	tags := []domain.Tag{tagFixture(), tagFixture()}
 	svc := &mockTagServicer{
-		list: func(_ context.Context, prefix string) ([]domain.Tag, error) {
+		listPaged: func(_ context.Context, prefix string, _ domain.PaginationParams) ([]domain.Tag, int64, error) {
 			assert.Equal(t, "", prefix)
-			return tags, nil
+			return tags, int64(len(tags)), nil
 		},
 	}
 
@@ -64,14 +69,20 @@ func TestListTags_200(t *testing.T) {
 	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var resp gen.TagList
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+	assert.Len(t, resp.Data, 2)
+	// Fails in Red because stub handler leaves Pagination.Total at 0.
+	assert.Equal(t, 2, resp.Pagination.Total)
 }
 
 func TestListTags_200_WithPrefix(t *testing.T) {
 	var capturedPrefix string
 	svc := &mockTagServicer{
-		list: func(_ context.Context, prefix string) ([]domain.Tag, error) {
+		listPaged: func(_ context.Context, prefix string, _ domain.PaginationParams) ([]domain.Tag, int64, error) {
 			capturedPrefix = prefix
-			return []domain.Tag{}, nil
+			return []domain.Tag{}, 0, nil
 		},
 	}
 
@@ -145,6 +156,10 @@ func TestAddTagToStop_422_ValidationError(t *testing.T) {
 	newTagHTTPHandler(nil, svc).ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "validation_error", errResp.Error.Code)
 }
 
 func TestAddTagToStop_404_StopNotFound(t *testing.T) {
@@ -163,7 +178,11 @@ func TestAddTagToStop_404_StopNotFound(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newTagHTTPHandler(nil, svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }
 
 // ---- DELETE /trips/{tripId}/stops/{stopId}/tags/{slug} ----------------------
@@ -201,5 +220,9 @@ func TestRemoveTagFromStop_404_NotLinked(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newTagHTTPHandler(nil, svc).ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }

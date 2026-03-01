@@ -12,19 +12,28 @@ import (
 
 // ListTags handles GET /tags.
 // The optional ?q= query parameter filters tags by slug prefix.
+// Supports ?page= and ?limit= query parameters (defaults: page=1, limit=20, max=100).
 func (s *Server) ListTags(ctx context.Context, req gen.ListTagsRequestObject) (gen.ListTagsResponseObject, error) {
 	prefix := derefString(req.Params.Q)
+	params := domain.NewPaginationParams(req.Params.Page, req.Params.Limit)
 
-	tags, err := s.tags.List(ctx, prefix)
+	tags, total, err := s.tags.ListPaged(ctx, prefix, params)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]gen.Tag, len(tags))
+	data := make([]gen.Tag, len(tags))
 	for i, t := range tags {
-		resp[i] = tagToResponse(t)
+		data[i] = tagToResponse(t)
 	}
-	return gen.ListTags200JSONResponse(resp), nil
+	return gen.ListTags200JSONResponse{
+		Data: data,
+		Pagination: gen.Pagination{
+			Page:  params.Page,
+			Limit: params.Limit,
+			Total: int(total),
+		},
+	}, nil
 }
 
 // ListTagsByStop handles GET /trips/{tripId}/stops/{stopId}/tags.
@@ -32,7 +41,7 @@ func (s *Server) ListTagsByStop(ctx context.Context, req gen.ListTagsByStopReque
 	tags, err := s.stops.ListTagsByStop(ctx, req.StopId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.ListTagsByStop404JSONResponse{Error: "stop not found"}, nil
+			return gen.ListTagsByStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		return nil, err
 	}
@@ -49,10 +58,10 @@ func (s *Server) AddTagToStop(ctx context.Context, req gen.AddTagToStopRequestOb
 	tag, err := s.stops.AddTag(ctx, req.StopId, req.Body.Name)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.AddTagToStop404JSONResponse{Error: "stop not found"}, nil
+			return gen.AddTagToStop404JSONResponse(notFoundBody("stop not found")), nil
 		}
 		if errors.Is(err, domain.ErrValidation) {
-			return gen.AddTagToStop422JSONResponse{Error: unwrapMessage(err)}, nil
+			return gen.AddTagToStop422JSONResponse(validationBody(err)), nil
 		}
 		return nil, err
 	}
@@ -65,7 +74,7 @@ func (s *Server) RemoveTagFromStop(ctx context.Context, req gen.RemoveTagFromSto
 	err := s.stops.RemoveTagFromStop(ctx, req.StopId, req.Slug)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.RemoveTagFromStop404JSONResponse{Error: "tag not linked to stop"}, nil
+			return gen.RemoveTagFromStop404JSONResponse(notFoundBody("tag not linked to stop")), nil
 		}
 		return nil, err
 	}

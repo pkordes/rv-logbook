@@ -19,11 +19,12 @@ import (
 
 // mockStopRepo is a hand-written test double for repo.StopRepo.
 type mockStopRepo struct {
-	create       func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
-	getByID      func(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
-	listByTripID func(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
-	update       func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
-	delete       func(ctx context.Context, tripID, stopID uuid.UUID) error
+	create            func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	getByID           func(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
+	listByTripID      func(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
+	listByTripIDPaged func(ctx context.Context, tripID uuid.UUID, p domain.PaginationParams) ([]domain.Stop, int64, error)
+	update            func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	delete            func(ctx context.Context, tripID, stopID uuid.UUID) error
 }
 
 func (m *mockStopRepo) Create(ctx context.Context, stop domain.Stop) (domain.Stop, error) {
@@ -34,6 +35,12 @@ func (m *mockStopRepo) GetByID(ctx context.Context, tripID, stopID uuid.UUID) (d
 }
 func (m *mockStopRepo) ListByTripID(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error) {
 	return m.listByTripID(ctx, tripID)
+}
+func (m *mockStopRepo) ListByTripIDPaged(ctx context.Context, tripID uuid.UUID, p domain.PaginationParams) ([]domain.Stop, int64, error) {
+	if m.listByTripIDPaged != nil {
+		return m.listByTripIDPaged(ctx, tripID, p)
+	}
+	return nil, 0, nil
 }
 func (m *mockStopRepo) Update(ctx context.Context, stop domain.Stop) (domain.Stop, error) {
 	return m.update(ctx, stop)

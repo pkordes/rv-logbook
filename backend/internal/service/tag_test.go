@@ -18,6 +18,7 @@ import (
 type mockTagRepo struct {
 	upsert         func(ctx context.Context, name, slug string) (domain.Tag, error)
 	list           func(ctx context.Context, prefix string) ([]domain.Tag, error)
+	listPaged      func(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
 	addToStop      func(ctx context.Context, stopID, tagID uuid.UUID) error
 	removeFromStop func(ctx context.Context, stopID uuid.UUID, slug string) error
 	listByStop     func(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
@@ -28,6 +29,12 @@ func (m *mockTagRepo) Upsert(ctx context.Context, name, slug string) (domain.Tag
 }
 func (m *mockTagRepo) List(ctx context.Context, prefix string) ([]domain.Tag, error) {
 	return m.list(ctx, prefix)
+}
+func (m *mockTagRepo) ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error) {
+	if m.listPaged != nil {
+		return m.listPaged(ctx, prefix, p)
+	}
+	return nil, 0, nil
 }
 func (m *mockTagRepo) AddToStop(ctx context.Context, stopID, tagID uuid.UUID) error {
 	return m.addToStop(ctx, stopID, tagID)

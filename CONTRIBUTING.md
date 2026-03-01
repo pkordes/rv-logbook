@@ -60,6 +60,8 @@ cp .env.example .env
 | `DATABASE_URL` | yes | — | Postgres connection string for dev DB |
 | `TEST_DATABASE_URL` | yes | — | Postgres connection string for test DB (integration tests) |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, `error` |
+| `CORS_ORIGINS` | no | `http://localhost:5173` | Comma-separated list of allowed CORS origins |
+| `MAX_BODY_BYTES` | no | `1048576` (1 MiB) | Maximum request body size; larger bodies get HTTP 413 |
 
 > `.env` is gitignored. Never commit real credentials.
 > The defaults in `.env.example` match the `docker-compose.yml` credentials and work out of the box.
@@ -127,6 +129,10 @@ make frontend/dev
   project scaffolding (Phase 0) only.
 - **Feature branches** — required from Phase 1 onward. Branch from `main`,
   name as `feat/short-description` or `fix/short-description`.
+- **CI is tiered** — `backend.yml` / `frontend.yml` run fast checks on every branch
+  push (vet, build, unit tests, lint). `backend-pr.yml` / `frontend-pr.yml` run
+  those same checks *plus* PR-only gates (oasdiff, and integration tests in Phase 8)
+  when a PR targets `main`.
 - **PRs require CI to pass** — lint, unit tests, and the `oasdiff` breaking-change
   check must all be green before merging.
 - **Breaking API changes** — if you intentionally change the OpenAPI contract in a
@@ -148,6 +154,33 @@ make frontend/dev
 - Named exports only (no default exports)
 - Component files are named in PascalCase, all others in camelCase
 - Prettier handles all formatting — do not manually adjust whitespace
+
+---
+
+## API Conventions
+
+### Pagination
+
+All list endpoints support cursor-free page/offset pagination via query parameters:
+
+| Parameter | Default | Max  | Description              |
+|-----------|---------|------|--------------------------|
+| `page`    | `1`     | —    | 1-based page number      |
+| `limit`   | `20`    | `100`| Items per page           |
+
+Paginated responses use a consistent envelope shape:
+
+```json
+{
+  "data": [ ... ],
+  "pagination": { "page": 1, "limit": 20, "total": 42 }
+}
+```
+
+`total` is the count of all matching records (not just the current page), enabling
+clients to calculate the number of pages: `ceil(total / limit)`.
+
+The defaults and the `limit` cap are enforced in `domain.NewPaginationParams`.
 
 ---
 

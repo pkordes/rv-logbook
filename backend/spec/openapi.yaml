@@ -65,15 +65,30 @@ paths:
           schema:
             type: string
           description: Filter by slug prefix (case-insensitive).
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-indexed).
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page (max 100).
       responses:
         "200":
-          description: A list of matching tags ordered by slug.
+          description: A paginated list of matching tags ordered by slug.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Tag"
+                $ref: "#/components/schemas/TagList"
 
   /trips:
     post:
@@ -106,15 +121,31 @@ paths:
       summary: List all trips
       tags:
         - trips
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-indexed).
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page (max 100).
       responses:
         "200":
-          description: A list of all trips, ordered by start_date descending.
+          description: A paginated list of trips ordered by start_date descending.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Trip"
+                $ref: "#/components/schemas/TripList"
 
   /trips/{id}:
     parameters:
@@ -235,15 +266,31 @@ paths:
       summary: List all stops for a trip
       tags:
         - stops
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-indexed).
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page (max 100).
       responses:
         "200":
-          description: A list of stops ordered by arrived_at ascending.
+          description: A paginated list of stops ordered by arrived_at ascending.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Stop"
+                $ref: "#/components/schemas/StopList"
         "404":
           description: Trip not found.
           content:
@@ -501,14 +548,28 @@ components:
           type: string
           format: date-time
 
+    ErrorDetail:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code for client branching.
+          example: "not_found"
+        message:
+          type: string
+          description: Human-readable description of the error.
+          example: "trip not found"
+
     ErrorResponse:
       type: object
       required:
         - error
       properties:
         error:
-          type: string
-          example: "name is required"
+          $ref: "#/components/schemas/ErrorDetail"
 
     CreateStopRequest:
       type: object
@@ -705,3 +766,64 @@ components:
           items:
             type: string
           example: ["camping", "national-park"]
+
+    Pagination:
+      type: object
+      description: Pagination metadata returned with every list response.
+      required:
+        - page
+        - limit
+        - total
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          example: 20
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items matching the query (across all pages).
+          example: 45
+
+    TripList:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Trip"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    StopList:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Stop"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    TagList:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+        pagination:
+          $ref: "#/components/schemas/Pagination"

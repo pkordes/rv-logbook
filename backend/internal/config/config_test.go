@@ -13,6 +13,7 @@ func TestLoad_defaults(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://rvlogbook:rvlogbook@localhost:5432/rvlogbook")
 	t.Setenv("PORT", "")
 	t.Setenv("LOG_LEVEL", "")
+	t.Setenv("CORS_ORIGINS", "")
 
 	cfg, err := config.Load()
 
@@ -20,6 +21,8 @@ func TestLoad_defaults(t *testing.T) {
 	require.Equal(t, "8080", cfg.Port)
 	require.Equal(t, "info", cfg.LogLevel)
 	require.Equal(t, "postgres://rvlogbook:rvlogbook@localhost:5432/rvlogbook", cfg.DatabaseURL)
+	require.Equal(t, []string{"http://localhost:5173"}, cfg.CORSOrigins)
+	require.Equal(t, int64(1<<20), cfg.MaxBodyBytes)
 }
 
 // TestLoad_overrides verifies that all values can be overridden via env vars.
@@ -27,6 +30,7 @@ func TestLoad_overrides(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://user:pass@db:5432/mydb")
 	t.Setenv("PORT", "9090")
 	t.Setenv("LOG_LEVEL", "debug")
+	t.Setenv("CORS_ORIGINS", "https://app.example.com, https://admin.example.com")
 
 	cfg, err := config.Load()
 
@@ -34,6 +38,7 @@ func TestLoad_overrides(t *testing.T) {
 	require.Equal(t, "9090", cfg.Port)
 	require.Equal(t, "debug", cfg.LogLevel)
 	require.Equal(t, "postgres://user:pass@db:5432/mydb", cfg.DatabaseURL)
+	require.Equal(t, []string{"https://app.example.com", "https://admin.example.com"}, cfg.CORSOrigins)
 }
 
 // TestLoad_missingRequired verifies that an error is returned when DATABASE_URL

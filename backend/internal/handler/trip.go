@@ -14,13 +14,13 @@ import (
 func (s *Server) CreateTrip(ctx context.Context, req gen.CreateTripRequestObject) (gen.CreateTripResponseObject, error) {
 	trip, err := requestToTrip(req.Body)
 	if err != nil {
-		return gen.CreateTrip422JSONResponse{Error: err.Error()}, nil
+		return gen.CreateTrip422JSONResponse(requestBody(err.Error())), nil
 	}
 
 	created, err := s.trips.Create(ctx, trip)
 	if err != nil {
 		if errors.Is(err, domain.ErrValidation) {
-			return gen.CreateTrip422JSONResponse{Error: unwrapMessage(err)}, nil
+			return gen.CreateTrip422JSONResponse(validationBody(err)), nil
 		}
 		return nil, err
 	}
@@ -29,17 +29,26 @@ func (s *Server) CreateTrip(ctx context.Context, req gen.CreateTripRequestObject
 }
 
 // ListTrips handles GET /trips.
-func (s *Server) ListTrips(ctx context.Context, _ gen.ListTripsRequestObject) (gen.ListTripsResponseObject, error) {
-	trips, err := s.trips.List(ctx)
+// Supports ?page= and ?limit= query parameters (defaults: page=1, limit=20, max=100).
+func (s *Server) ListTrips(ctx context.Context, req gen.ListTripsRequestObject) (gen.ListTripsResponseObject, error) {
+	params := domain.NewPaginationParams(req.Params.Page, req.Params.Limit)
+	trips, total, err := s.trips.ListPaged(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]gen.Trip, len(trips))
+	data := make([]gen.Trip, len(trips))
 	for i, t := range trips {
-		resp[i] = tripToResponse(t)
+		data[i] = tripToResponse(t)
 	}
-	return gen.ListTrips200JSONResponse(resp), nil
+	return gen.ListTrips200JSONResponse{
+		Data: data,
+		Pagination: gen.Pagination{
+			Page:  params.Page,
+			Limit: params.Limit,
+			Total: int(total),
+		},
+	}, nil
 }
 
 // GetTrip handles GET /trips/{id}.
@@ -47,7 +56,7 @@ func (s *Server) GetTrip(ctx context.Context, req gen.GetTripRequestObject) (gen
 	trip, err := s.trips.GetByID(ctx, req.Id)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.GetTrip404JSONResponse{Error: "trip not found"}, nil
+			return gen.GetTrip404JSONResponse(notFoundBody("trip not found")), nil
 		}
 		return nil, err
 	}
@@ -59,16 +68,16 @@ func (s *Server) GetTrip(ctx context.Context, req gen.GetTripRequestObject) (gen
 func (s *Server) UpdateTrip(ctx context.Context, req gen.UpdateTripRequestObject) (gen.UpdateTripResponseObject, error) {
 	trip, err := requestToTripUpdate(req.Id, req.Body)
 	if err != nil {
-		return gen.UpdateTrip422JSONResponse{Error: err.Error()}, nil
+		return gen.UpdateTrip422JSONResponse(requestBody(err.Error())), nil
 	}
 
 	updated, err := s.trips.Update(ctx, trip)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.UpdateTrip404JSONResponse{Error: "trip not found"}, nil
+			return gen.UpdateTrip404JSONResponse(notFoundBody("trip not found")), nil
 		}
 		if errors.Is(err, domain.ErrValidation) {
-			return gen.UpdateTrip422JSONResponse{Error: unwrapMessage(err)}, nil
+			return gen.UpdateTrip422JSONResponse(validationBody(err)), nil
 		}
 		return nil, err
 	}
@@ -81,7 +90,7 @@ func (s *Server) DeleteTrip(ctx context.Context, req gen.DeleteTripRequestObject
 	err := s.trips.Delete(ctx, req.Id)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return gen.DeleteTrip404JSONResponse{Error: "trip not found"}, nil
+			return gen.DeleteTrip404JSONResponse(notFoundBody("trip not found")), nil
 		}
 		return nil, err
 	}
@@ -148,23 +157,4 @@ func tripToResponse(t domain.Trip) gen.Trip {
 		resp.EndDate = &ed
 	}
 	return resp
-}
-
-// unwrapMessage extracts a human-readable message from a wrapped sentinel error.
-// e.g. "validation error: name is required" → "name is required"
-func unwrapMessage(err error) string {
-	if err == nil {
-		return ""
-	}
-	msg := err.Error()
-	for _, prefix := range []string{
-		"service.TripService.Create: validation error: ",
-		"service.TripService.Update: validation error: ",
-		"validation error: ",
-	} {
-		if len(msg) > len(prefix) && msg[:len(prefix)] == prefix {
-			return msg[len(prefix):]
-		}
-	}
-	return msg
 }
