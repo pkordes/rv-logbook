@@ -41,22 +41,28 @@ type TagServicer interface {
 	List(ctx context.Context, prefix string) ([]domain.Tag, error)
 }
 
+// ExportServicer defines the business operations the export handler depends on.
+type ExportServicer interface {
+	Export(ctx context.Context) ([]domain.ExportRow, error)
+}
+
 // Server implements gen.StrictServerInterface for all API endpoints.
 // Wire it in main.go via gen.NewStrictHandler(server, nil).
 // Methods are in domain-specific files but all operate on this struct.
 type Server struct {
-	trips TripServicer
-	stops StopServicer
-	tags  TagServicer
+	trips  TripServicer
+	stops  StopServicer
+	tags   TagServicer
+	export ExportServicer
 }
 
 // NewServer constructs the Server with all its dependencies.
-func NewServer(trips TripServicer, stops StopServicer, tags TagServicer) *Server {
-	return &Server{trips: trips, stops: stops, tags: tags}
+func NewServer(trips TripServicer, stops StopServicer, tags TagServicer, export ExportServicer) *Server {
+	return &Server{trips: trips, stops: stops, tags: tags, export: export}
 }
 
 // NewHealthHandler returns a Server for health-check-only use.
 // Keeps existing handler tests compiling without modification.
 func NewHealthHandler() *Server {
-	return NewServer(nil, nil, nil)
+	return NewServer(nil, nil, nil, nil)
 }

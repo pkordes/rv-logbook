@@ -35,7 +35,7 @@ var _ handler.TagServicer = (*mockTagServicer)(nil)
 // newTagHTTPHandler wires a Server with tag and stop service mocks.
 // Pass nil for mocks that the test does not use.
 func newTagHTTPHandler(tagSvc handler.TagServicer, stopSvc handler.StopServicer) http.Handler {
-	srv := handler.NewServer(nil, stopSvc, tagSvc)
+	srv := handler.NewServer(nil, stopSvc, tagSvc, nil)
 	return gen.Handler(gen.NewStrictHandler(srv, nil))
 }
 

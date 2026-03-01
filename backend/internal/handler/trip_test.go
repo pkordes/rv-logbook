@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -54,7 +53,7 @@ var _ handler.TripServicer = (*mockTripServicer)(nil)
 // newHTTPHandler wires a Server with the given mock into the generated chi router.
 // This mirrors exactly how main.go wires it in production.
 func newHTTPHandler(svc handler.TripServicer) http.Handler {
-	srv := handler.NewServer(svc, nil, nil)
+	srv := handler.NewServer(svc, nil, nil, nil)
 	return gen.Handler(gen.NewStrictHandler(srv, nil))
 }
 
@@ -287,10 +286,4 @@ func TestDeleteTrip_404(t *testing.T) {
 	newHTTPHandler(svc).ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusNotFound, rec.Code)
-}
-
-// ---- openapi_types.Date helper (used for request body construction) --------
-func mustDate(s string) openapi_types.Date {
-	t, _ := time.Parse("2006-01-02", s)
-	return openapi_types.Date{Time: t}
 }

@@ -90,7 +90,8 @@ func main() {
 	tripService := service.NewTripService(tripRepo)
 	stopService := service.NewStopService(tripRepo, stopRepo, tagRepo)
 	tagService := service.NewTagService(tagRepo)
-	server := handler.NewServer(tripService, stopService, tagService)
+	exportService := service.NewExportService(tripRepo, stopRepo, tagRepo)
+	server := handler.NewServer(tripService, stopService, tagService, exportService)
 	r.Mount("/", gen.Handler(gen.NewStrictHandler(server, nil)))
 
 	// --- Docs routes (dev convenience) -----------------------------------
