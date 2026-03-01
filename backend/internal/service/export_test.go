@@ -74,7 +74,8 @@ func TestExportService_Export_OneTrip_OneStop_NoTags(t *testing.T) {
 	assert.Equal(t, "Summer Tour", rows[0].TripName)
 	assert.Equal(t, "2025-06-01", rows[0].TripStartDate)
 	assert.Equal(t, "Yellowstone Camp", rows[0].StopName)
-	assert.Equal(t, stop.ArrivedAt, rows[0].ArrivedAt)
+	require.NotNil(t, rows[0].ArrivedAt)
+	assert.Equal(t, stop.ArrivedAt, *rows[0].ArrivedAt)
 	assert.Empty(t, rows[0].Tags)
 }
 
