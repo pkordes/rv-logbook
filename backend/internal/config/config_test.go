@@ -22,6 +22,7 @@ func TestLoad_defaults(t *testing.T) {
 	require.Equal(t, "info", cfg.LogLevel)
 	require.Equal(t, "postgres://rvlogbook:rvlogbook@localhost:5432/rvlogbook", cfg.DatabaseURL)
 	require.Equal(t, []string{"http://localhost:5173"}, cfg.CORSOrigins)
+	require.Equal(t, int64(1<<20), cfg.MaxBodyBytes)
 }
 
 // TestLoad_overrides verifies that all values can be overridden via env vars.

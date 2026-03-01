@@ -24,6 +24,11 @@ type Config struct {
 	// Defaults to ["http://localhost:5173"] (Vite dev server).
 	// Set CORS_ORIGINS to a comma-separated list to override.
 	CORSOrigins []string
+
+	// MaxBodyBytes is the maximum request body size in bytes.
+	// Requests with a larger body are rejected with 413 before reaching a handler.
+	// Defaults to 1 MiB. Set MAX_BODY_BYTES to override.
+	MaxBodyBytes int64
 }
 
 // Load reads configuration from environment variables and returns a Config.
