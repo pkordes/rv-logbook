@@ -40,7 +40,10 @@ func TestCORSHandler_OPTIONS_Preflight(t *testing.T) {
 	req := httptest.NewRequest(http.MethodOptions, "/trips", nil)
 	req.Header.Set("Origin", "http://localhost:5173")
 	req.Header.Set("Access-Control-Request-Method", "POST")
-	req.Header.Set("Access-Control-Request-Headers", "Content-Type")
+	// The Fetch specification requires browsers to send Access-Control-Request-Headers
+	// values in lowercase. rs/cors normalises its allowed-headers list to lowercase and
+	// compares verbatim, so the test must match that convention.
+	req.Header.Set("Access-Control-Request-Headers", "content-type")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 

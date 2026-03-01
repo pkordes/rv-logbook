@@ -1,14 +1,22 @@
+// Package middleware provides reusable HTTP middleware for the RV Logbook API.
 package middleware
 
-import "net/http"
+import (
+	"net/http"
 
-// NewCORSHandler returns a middleware that sets CORS headers allowing the
-// given origins to make requests to this server.
-// An empty origins slice disables CORS (development only).
+	"github.com/rs/cors"
+)
+
+// NewCORSHandler returns a middleware that applies CORS headers based on allowedOrigins.
+// Each entry in allowedOrigins must be a full origin (scheme + host, no trailing slash).
+// Allowed methods and headers cover the full REST surface of the API.
 func NewCORSHandler(allowedOrigins []string) func(http.Handler) http.Handler {
-	// Stub: passes the request through without setting any CORS headers.
-	// Tests will fail against this until the real implementation is added.
+	c := cors.New(cors.Options{
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Content-Type", "Authorization"},
+	})
 	return func(next http.Handler) http.Handler {
-		return next
+		return c.Handler(next)
 	}
 }

@@ -77,11 +77,13 @@ func main() {
 	// RealIP sets r.RemoteAddr from X-Forwarded-For / X-Real-IP (safe behind a proxy).
 	// SlogLogger writes one structured JSON log line per request.
 	// Recoverer catches panics and returns HTTP 500 instead of crashing.
+	// NewCORSHandler applies CORS headers based on the configured allowed origins.
 	r := chi.NewRouter()
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.NewSlogLogger(logger))
 	r.Use(chimiddleware.Recoverer)
+	r.Use(middleware.NewCORSHandler(cfg.CORSOrigins))
 
 	// Wire the dependency chain: pool → repo → service → handler.
 	tripRepo := repo.NewTripRepo(pool)
