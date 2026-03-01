@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+package: gen
+generate:
+  chi-server: true
+  strict-server: true
+  models: true
+# Output path is relative to the directory where oapi-codegen is invoked.
+# The go:generate directive in internal/handler/gen/generate.go runs from
+# that package directory, so this path resolves to api.gen.go in that directory.
+output: api.gen.go

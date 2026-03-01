@@ -30,7 +30,10 @@ go install github.com/pressly/goose/v3/cmd/goose@latest
 go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 go install github.com/oasdiff/oasdiff@latest
 go install honnef.co/go/tools/cmd/staticcheck@latest
+go install gotest.tools/gotestsum@latest
 ```
+
+`gotestsum` replaces bare `go test` for `make backend/test`. It produces a readable per-package summary and a pass/fail count. All `go test` flags (e.g. `-race`, `-count=1`) are passed through after `--`.
 
 ### VS Code Extensions (recommended)
 
