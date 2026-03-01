@@ -21,6 +21,8 @@ import (
 	"github.com/pkordes/rv-logbook/backend/internal/handler"
 	"github.com/pkordes/rv-logbook/backend/internal/handler/gen"
 	"github.com/pkordes/rv-logbook/backend/internal/middleware"
+	"github.com/pkordes/rv-logbook/backend/internal/repo"
+	"github.com/pkordes/rv-logbook/backend/internal/service"
 )
 
 func main() {
@@ -80,10 +82,11 @@ func main() {
 	r.Use(middleware.NewSlogLogger(logger))
 	r.Use(chimiddleware.Recoverer)
 
-	// Register handlers. gen.NewStrictHandler adapts our StrictServerInterface
-	// implementation to the lower-level ServerInterface chi expects.
-	healthHandler := handler.NewHealthHandler()
-	r.Mount("/", gen.Handler(gen.NewStrictHandler(healthHandler, nil)))
+	// Wire the dependency chain: pool → repo → service → handler.
+	tripRepo := repo.NewTripRepo(pool)
+	tripService := service.NewTripService(tripRepo)
+	server := handler.NewServer(tripService)
+	r.Mount("/", gen.Handler(gen.NewStrictHandler(server, nil)))
 
 	// --- HTTP Server ------------------------------------------------------
 	// Explicit timeouts prevent slowloris and resource exhaustion attacks.
