@@ -47,7 +47,11 @@ func main() {
 	// --- Database ---------------------------------------------------------
 	// pgxpool manages a pool of Postgres connections.
 	// New() does not open connections immediately — the first query does.
-	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+	// Use per-operation timeouts so startup fails fast when the DB is unreachable.
+	poolCtx, poolCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer poolCancel()
+
+	pool, err := pgxpool.New(poolCtx, cfg.DatabaseURL)
 	if err != nil {
 		slog.Error("failed to create database pool", "error", err)
 		os.Exit(1)
@@ -55,7 +59,10 @@ func main() {
 	defer pool.Close()
 
 	// Verify the DB is reachable before accepting traffic.
-	if err := pool.Ping(context.Background()); err != nil {
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer pingCancel()
+
+	if err := pool.Ping(pingCtx); err != nil {
 		slog.Error("failed to connect to database", "error", err)
 		os.Exit(1)
 	}
