@@ -95,21 +95,26 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Graceful shutdown: wait for OS signal, then give in-flight requests
-	// up to 15 seconds to complete before forcefully closing.
+	// Graceful shutdown: wait for OS signal or server error, then give in-flight
+	// requests up to 15 seconds to complete before forcefully closing.
 	stop := make(chan os.Signal, 1)
+	serverErr := make(chan error, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		slog.Info("server starting", "addr", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("server error", "error", err)
-			os.Exit(1)
+			serverErr <- err
 		}
 	}()
 
-	<-stop
-	slog.Info("shutting down server")
+	select {
+	case <-stop:
+		slog.Info("shutting down server")
+	case err := <-serverErr:
+		slog.Error("shutting down due to server error", "error", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
