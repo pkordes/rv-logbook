@@ -129,6 +129,10 @@ make frontend/dev
   project scaffolding (Phase 0) only.
 - **Feature branches** — required from Phase 1 onward. Branch from `main`,
   name as `feat/short-description` or `fix/short-description`.
+- **CI is tiered** — `backend.yml` / `frontend.yml` run fast checks on every branch
+  push (vet, build, unit tests, lint). `backend-pr.yml` / `frontend-pr.yml` run
+  those same checks *plus* PR-only gates (oasdiff, and integration tests in Phase 8)
+  when a PR targets `main`.
 - **PRs require CI to pass** — lint, unit tests, and the `oasdiff` breaking-change
   check must all be green before merging.
 - **Breaking API changes** — if you intentionally change the OpenAPI contract in a
