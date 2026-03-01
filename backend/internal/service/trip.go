@@ -60,6 +60,19 @@ func (s *TripService) List(ctx context.Context) ([]domain.Trip, error) {
 	return trips, nil
 }
 
+// ListPaged returns one page of trips and the total count across all pages.
+// The caller controls page and limit via domain.PaginationParams.
+func (s *TripService) ListPaged(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error) {
+	trips, total, err := s.repo.ListPaged(ctx, p)
+	if err != nil {
+		return nil, 0, fmt.Errorf("service.TripService.ListPaged: %w", err)
+	}
+	if trips == nil {
+		trips = []domain.Trip{}
+	}
+	return trips, total, nil
+}
+
 // Update validates and persists changes to an existing trip.
 // Returns domain.ErrValidation for invalid input, domain.ErrNotFound if the
 // trip does not exist.

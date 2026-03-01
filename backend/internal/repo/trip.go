@@ -41,6 +41,10 @@ type TripRepo interface {
 	// List returns all trips ordered by start_date descending.
 	List(ctx context.Context) ([]domain.Trip, error)
 
+	// ListPaged returns one page of trips and the total count across all pages.
+	// Results are ordered by start_date descending.
+	ListPaged(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error)
+
 	// Update overwrites the mutable fields of an existing trip and returns the
 	// updated record. Returns domain.ErrNotFound if no trip with that ID exists.
 	Update(ctx context.Context, trip domain.Trip) (domain.Trip, error)
@@ -123,6 +127,13 @@ func (r *pgTripRepo) List(ctx context.Context) ([]domain.Trip, error) {
 	}
 
 	return trips, nil
+}
+
+// ListPaged returns one page of trips ordered by start_date descending.
+// Stub: returns empty results. Real implementation added in step 7.4 (Green).
+func (r *pgTripRepo) ListPaged(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error) {
+	_ = p
+	return nil, 0, nil
 }
 
 // Update overwrites the mutable fields of a trip and returns the updated record.

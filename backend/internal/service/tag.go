@@ -63,6 +63,20 @@ func (s *TagService) List(ctx context.Context, prefix string) ([]domain.Tag, err
 	return tags, nil
 }
 
+// ListPaged returns one page of tags whose slug starts with prefix and the total count.
+// The prefix is normalized to lowercase before querying, just like List.
+func (s *TagService) ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error) {
+	prefix = strings.ToLower(strings.TrimSpace(prefix))
+	tags, total, err := s.tags.ListPaged(ctx, prefix, p)
+	if err != nil {
+		return nil, 0, fmt.Errorf("service.TagService.ListPaged: %w", err)
+	}
+	if tags == nil {
+		tags = []domain.Tag{}
+	}
+	return tags, total, nil
+}
+
 // toSlug converts a display name to a URL-safe, lowercase, hyphenated slug.
 // Examples:
 //

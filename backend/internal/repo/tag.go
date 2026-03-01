@@ -22,6 +22,10 @@ type TagRepo interface {
 	// If prefix is empty, all tags are returned.
 	List(ctx context.Context, prefix string) ([]domain.Tag, error)
 
+	// ListPaged returns one page of tags matching the slug prefix and the total count.
+	// If prefix is empty, all tags are included in the result set.
+	ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
+
 	// AddToStop links a tag to a stop. Idempotent — no error if already linked.
 	AddToStop(ctx context.Context, stopID, tagID uuid.UUID) error
 
@@ -89,6 +93,13 @@ func (r *pgTagRepo) List(ctx context.Context, prefix string) ([]domain.Tag, erro
 		return nil, fmt.Errorf("repo.TagRepo.List: rows: %w", err)
 	}
 	return tags, nil
+}
+
+// ListPaged returns one page of tags matching prefix ordered by slug.
+// Stub: returns empty results. Real implementation added in step 7.4 (Green).
+func (r *pgTagRepo) ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error) {
+	_, _ = prefix, p
+	return nil, 0, nil
 }
 
 // AddToStop links a tag to a stop. Idempotent via ON CONFLICT DO NOTHING.

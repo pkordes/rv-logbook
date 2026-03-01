@@ -20,11 +20,12 @@ import (
 // This is idiomatic Go: no mock generation library required for simple cases.
 // Think of it like passing a lambda per method in Java or a MagicMock in Python.
 type mockTripRepo struct {
-	create  func(ctx context.Context, trip domain.Trip) (domain.Trip, error)
-	getByID func(ctx context.Context, id uuid.UUID) (domain.Trip, error)
-	list    func(ctx context.Context) ([]domain.Trip, error)
-	update  func(ctx context.Context, trip domain.Trip) (domain.Trip, error)
-	delete  func(ctx context.Context, id uuid.UUID) error
+	create    func(ctx context.Context, trip domain.Trip) (domain.Trip, error)
+	getByID   func(ctx context.Context, id uuid.UUID) (domain.Trip, error)
+	list      func(ctx context.Context) ([]domain.Trip, error)
+	listPaged func(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error)
+	update    func(ctx context.Context, trip domain.Trip) (domain.Trip, error)
+	delete    func(ctx context.Context, id uuid.UUID) error
 }
 
 func (m *mockTripRepo) Create(ctx context.Context, trip domain.Trip) (domain.Trip, error) {
@@ -35,6 +36,12 @@ func (m *mockTripRepo) GetByID(ctx context.Context, id uuid.UUID) (domain.Trip, 
 }
 func (m *mockTripRepo) List(ctx context.Context) ([]domain.Trip, error) {
 	return m.list(ctx)
+}
+func (m *mockTripRepo) ListPaged(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error) {
+	if m.listPaged != nil {
+		return m.listPaged(ctx, p)
+	}
+	return nil, 0, nil
 }
 func (m *mockTripRepo) Update(ctx context.Context, trip domain.Trip) (domain.Trip, error) {
 	return m.update(ctx, trip)

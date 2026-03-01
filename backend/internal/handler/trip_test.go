@@ -22,11 +22,12 @@ import (
 // mockTripServicer is a test double for handler.TripServicer.
 // Set only the method fields your test needs.
 type mockTripServicer struct {
-	create  func(ctx context.Context, trip domain.Trip) (domain.Trip, error)
-	getByID func(ctx context.Context, id uuid.UUID) (domain.Trip, error)
-	list    func(ctx context.Context) ([]domain.Trip, error)
-	update  func(ctx context.Context, trip domain.Trip) (domain.Trip, error)
-	delete  func(ctx context.Context, id uuid.UUID) error
+	create    func(ctx context.Context, trip domain.Trip) (domain.Trip, error)
+	getByID   func(ctx context.Context, id uuid.UUID) (domain.Trip, error)
+	list      func(ctx context.Context) ([]domain.Trip, error)
+	listPaged func(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error)
+	update    func(ctx context.Context, trip domain.Trip) (domain.Trip, error)
+	delete    func(ctx context.Context, id uuid.UUID) error
 }
 
 func (m *mockTripServicer) Create(ctx context.Context, t domain.Trip) (domain.Trip, error) {
@@ -37,6 +38,9 @@ func (m *mockTripServicer) GetByID(ctx context.Context, id uuid.UUID) (domain.Tr
 }
 func (m *mockTripServicer) List(ctx context.Context) ([]domain.Trip, error) {
 	return m.list(ctx)
+}
+func (m *mockTripServicer) ListPaged(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error) {
+	return m.listPaged(ctx, p)
 }
 func (m *mockTripServicer) Update(ctx context.Context, t domain.Trip) (domain.Trip, error) {
 	return m.update(ctx, t)
@@ -142,7 +146,9 @@ func TestCreateTrip_422_ValidationError(t *testing.T) {
 func TestListTrips_200(t *testing.T) {
 	trips := []domain.Trip{tripFixture(), tripFixture()}
 	svc := &mockTripServicer{
-		list: func(_ context.Context) ([]domain.Trip, error) { return trips, nil },
+		listPaged: func(_ context.Context, _ domain.PaginationParams) ([]domain.Trip, int64, error) {
+			return trips, int64(len(trips)), nil
+		},
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/trips", nil)
@@ -152,14 +158,20 @@ func TestListTrips_200(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 
-	var resp []gen.Trip
+	var resp gen.TripList
 	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
-	assert.Len(t, resp, 2)
+	assert.Len(t, resp.Data, 2)
+	// Fails in Red because stub handler leaves Pagination.Total at 0.
+	assert.Equal(t, 2, resp.Pagination.Total)
+	assert.Equal(t, 1, resp.Pagination.Page)
+	assert.Equal(t, 20, resp.Pagination.Limit)
 }
 
 func TestListTrips_200_Empty(t *testing.T) {
 	svc := &mockTripServicer{
-		list: func(_ context.Context) ([]domain.Trip, error) { return []domain.Trip{}, nil },
+		listPaged: func(_ context.Context, _ domain.PaginationParams) ([]domain.Trip, int64, error) {
+			return []domain.Trip{}, 0, nil
+		},
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/trips", nil)
@@ -169,8 +181,10 @@ func TestListTrips_200_Empty(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 
-	// Must be a JSON array, not null.
-	assert.Contains(t, rec.Body.String(), "[")
+	var resp gen.TripList
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+	assert.Len(t, resp.Data, 0)
+	assert.Equal(t, 0, resp.Pagination.Total)
 }
 
 // ---- GET /trips/{id} -------------------------------------------------------

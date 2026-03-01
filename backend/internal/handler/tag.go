@@ -12,19 +12,23 @@ import (
 
 // ListTags handles GET /tags.
 // The optional ?q= query parameter filters tags by slug prefix.
+// Stub: returns tags but leaves Pagination metadata at zero-values.
+// Real pagination wired in the Green commit of step 7.4.
 func (s *Server) ListTags(ctx context.Context, req gen.ListTagsRequestObject) (gen.ListTagsResponseObject, error) {
 	prefix := derefString(req.Params.Q)
+	params := domain.NewPaginationParams(req.Params.Page, req.Params.Limit)
 
-	tags, err := s.tags.List(ctx, prefix)
+	tags, _, err := s.tags.ListPaged(ctx, prefix, params) // total ignored in stub
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]gen.Tag, len(tags))
+	data := make([]gen.Tag, len(tags))
 	for i, t := range tags {
-		resp[i] = tagToResponse(t)
+		data[i] = tagToResponse(t)
 	}
-	return gen.ListTags200JSONResponse(resp), nil
+	// Stub: Pagination not populated — tests will fail on Pagination.Total.
+	return gen.ListTags200JSONResponse{Data: data}, nil
 }
 
 // ListTagsByStop handles GET /trips/{tripId}/stops/{stopId}/tags.

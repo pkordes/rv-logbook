@@ -20,6 +20,7 @@ type TripServicer interface {
 	Create(ctx context.Context, trip domain.Trip) (domain.Trip, error)
 	GetByID(ctx context.Context, id uuid.UUID) (domain.Trip, error)
 	List(ctx context.Context) ([]domain.Trip, error)
+	ListPaged(ctx context.Context, p domain.PaginationParams) ([]domain.Trip, int64, error)
 	Update(ctx context.Context, trip domain.Trip) (domain.Trip, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -29,6 +30,7 @@ type StopServicer interface {
 	Create(ctx context.Context, stop domain.Stop) (domain.Stop, error)
 	GetByID(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
 	ListByTripID(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
+	ListByTripIDPaged(ctx context.Context, tripID uuid.UUID, p domain.PaginationParams) ([]domain.Stop, int64, error)
 	Update(ctx context.Context, stop domain.Stop) (domain.Stop, error)
 	Delete(ctx context.Context, tripID, stopID uuid.UUID) error
 	AddTag(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error)
@@ -39,6 +41,7 @@ type StopServicer interface {
 // TagServicer defines the business operations the tag handler depends on.
 type TagServicer interface {
 	List(ctx context.Context, prefix string) ([]domain.Tag, error)
+	ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
 }
 
 // ExportServicer defines the business operations the export handler depends on.

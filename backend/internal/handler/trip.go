@@ -29,17 +29,21 @@ func (s *Server) CreateTrip(ctx context.Context, req gen.CreateTripRequestObject
 }
 
 // ListTrips handles GET /trips.
-func (s *Server) ListTrips(ctx context.Context, _ gen.ListTripsRequestObject) (gen.ListTripsResponseObject, error) {
-	trips, err := s.trips.List(ctx)
+// Stub: returns trips but leaves Pagination metadata at zero-values.
+// Real pagination wired in the Green commit of step 7.4.
+func (s *Server) ListTrips(ctx context.Context, req gen.ListTripsRequestObject) (gen.ListTripsResponseObject, error) {
+	params := domain.NewPaginationParams(req.Params.Page, req.Params.Limit)
+	trips, _, err := s.trips.ListPaged(ctx, params) // total ignored in stub
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]gen.Trip, len(trips))
+	data := make([]gen.Trip, len(trips))
 	for i, t := range trips {
-		resp[i] = tripToResponse(t)
+		data[i] = tripToResponse(t)
 	}
-	return gen.ListTrips200JSONResponse(resp), nil
+	// Stub: Pagination not populated — tests will fail on Pagination.Total.
+	return gen.ListTrips200JSONResponse{Data: data}, nil
 }
 
 // GetTrip handles GET /trips/{id}.

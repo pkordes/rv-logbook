@@ -21,14 +21,15 @@ import (
 // mockStopServicer is a test double for handler.StopServicer.
 // Set only the method fields your test needs.
 type mockStopServicer struct {
-	create         func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
-	getByID        func(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
-	listByTripID   func(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
-	update         func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
-	delete         func(ctx context.Context, tripID, stopID uuid.UUID) error
-	addTag         func(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error)
-	removeTagFrom  func(ctx context.Context, stopID uuid.UUID, slug string) error
-	listTagsByStop func(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
+	create              func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	getByID             func(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error)
+	listByTripID        func(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error)
+	listByTripIDPaged   func(ctx context.Context, tripID uuid.UUID, p domain.PaginationParams) ([]domain.Stop, int64, error)
+	update              func(ctx context.Context, stop domain.Stop) (domain.Stop, error)
+	delete              func(ctx context.Context, tripID, stopID uuid.UUID) error
+	addTag              func(ctx context.Context, stopID uuid.UUID, tagName string) (domain.Tag, error)
+	removeTagFrom       func(ctx context.Context, stopID uuid.UUID, slug string) error
+	listTagsByStop      func(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
 }
 
 func (m *mockStopServicer) Create(ctx context.Context, s domain.Stop) (domain.Stop, error) {
@@ -39,6 +40,9 @@ func (m *mockStopServicer) GetByID(ctx context.Context, tripID, stopID uuid.UUID
 }
 func (m *mockStopServicer) ListByTripID(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error) {
 	return m.listByTripID(ctx, tripID)
+}
+func (m *mockStopServicer) ListByTripIDPaged(ctx context.Context, tripID uuid.UUID, p domain.PaginationParams) ([]domain.Stop, int64, error) {
+	return m.listByTripIDPaged(ctx, tripID, p)
 }
 func (m *mockStopServicer) Update(ctx context.Context, s domain.Stop) (domain.Stop, error) {
 	return m.update(ctx, s)
@@ -158,8 +162,8 @@ func TestListStops_200(t *testing.T) {
 	tripID := uuid.New()
 	stops := []domain.Stop{stopFixture(tripID), stopFixture(tripID)}
 	svc := &mockStopServicer{
-		listByTripID: func(_ context.Context, _ uuid.UUID) ([]domain.Stop, error) {
-			return stops, nil
+		listByTripIDPaged: func(_ context.Context, _ uuid.UUID, _ domain.PaginationParams) ([]domain.Stop, int64, error) {
+			return stops, int64(len(stops)), nil
 		},
 	}
 
@@ -169,13 +173,19 @@ func TestListStops_200(t *testing.T) {
 	newStopHTTPHandler(svc).ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var resp gen.StopList
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+	assert.Len(t, resp.Data, 2)
+	// Fails in Red because stub handler leaves Pagination.Total at 0.
+	assert.Equal(t, 2, resp.Pagination.Total)
 }
 
 func TestListStops_200_Empty(t *testing.T) {
 	tripID := uuid.New()
 	svc := &mockStopServicer{
-		listByTripID: func(_ context.Context, _ uuid.UUID) ([]domain.Stop, error) {
-			return []domain.Stop{}, nil
+		listByTripIDPaged: func(_ context.Context, _ uuid.UUID, _ domain.PaginationParams) ([]domain.Stop, int64, error) {
+			return []domain.Stop{}, 0, nil
 		},
 	}
 
@@ -185,7 +195,11 @@ func TestListStops_200_Empty(t *testing.T) {
 	newStopHTTPHandler(svc).ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.JSONEq(t, `[]`, rec.Body.String())
+
+	var resp gen.StopList
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+	assert.Len(t, resp.Data, 0)
+	assert.Equal(t, 0, resp.Pagination.Total)
 }
 
 // ---- GET /trips/{tripId}/stops/{stopId} -----------------------------------

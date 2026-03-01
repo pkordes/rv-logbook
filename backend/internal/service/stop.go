@@ -65,6 +65,19 @@ func (s *StopService) ListByTripID(ctx context.Context, tripID uuid.UUID) ([]dom
 	return stops, nil
 }
 
+// ListByTripIDPaged returns one page of stops for a trip and the total count.
+// The caller controls page and limit via domain.PaginationParams.
+func (s *StopService) ListByTripIDPaged(ctx context.Context, tripID uuid.UUID, p domain.PaginationParams) ([]domain.Stop, int64, error) {
+	stops, total, err := s.stops.ListByTripIDPaged(ctx, tripID, p)
+	if err != nil {
+		return nil, 0, fmt.Errorf("service.StopService.ListByTripIDPaged: %w", err)
+	}
+	if stops == nil {
+		stops = []domain.Stop{}
+	}
+	return stops, total, nil
+}
+
 // Update validates and persists changes to an existing stop.
 // Returns domain.ErrValidation for invalid input, domain.ErrNotFound if the
 // stop does not exist under the given trip.
