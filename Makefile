@@ -27,7 +27,9 @@ GOOSE        := goose
 # ---------------------------------------------------------------------------
 
 .PHONY: help \
-        backend/run backend/build backend/test backend/lint backend/generate \
+        backend/run backend/build backend/check backend/test \
+		backend/test/service backend/test/handler \
+		backend/lint backend/generate \
         frontend/dev frontend/build frontend/test frontend/lint \
         db/up db/down db/migrate db/rollback db/reset
 
@@ -42,7 +44,10 @@ help: ## Show this help message
 	$(info   Backend)
 	$(info     make backend/run        Start the Go API server)
 	$(info     make backend/build      Compile Go binary to backend/bin/api)
-	$(info     make backend/test       Run all Go tests)
+	$(info     make backend/check      Compile all packages without producing a binary)
+	$(info     make backend/test       Run all Go tests (all packages, DB required))
+	$(info     make backend/test/service  Run service-layer unit tests only (no DB))
+	$(info     make backend/test/handler  Run handler-layer unit tests only (no DB))
 	$(info     make backend/lint       Run go vet + staticcheck)
 	$(info     make backend/generate   Regenerate Go code from openapi.yaml)
 	$(info )
@@ -74,6 +79,11 @@ backend/run:
 backend/build:
 	cd $(BACKEND_DIR) && go build -o bin/api ./cmd/api
 
+## Compile all packages without producing a binary.
+## Faster than backend/build — use this to verify a refactor compiles cleanly.
+backend/check:
+	cd $(BACKEND_DIR) && go build ./...
+
 ## Run all Go tests via gotestsum.
 ## -p 1 runs one test package at a time — required because integration tests
 ## share a single Postgres database and would conflict if run in parallel.
@@ -81,6 +91,16 @@ backend/build:
 ## The race detector runs in CI on Linux where gcc is available.
 backend/test:
 	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 -p 1 ./...
+
+## Run service-layer unit tests only. No database required.
+## Use during TDD inner loop for fast feedback on service logic.
+backend/test/service:
+	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 ./internal/service/...
+
+## Run handler-layer unit tests only. No database required.
+## Uses httptest — no live server or DB needed.
+backend/test/handler:
+	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 ./internal/handler/...
 
 ## Run go vet and staticcheck.
 ## Both must pass with zero warnings — this mirrors the CI check.
