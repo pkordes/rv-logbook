@@ -153,6 +153,33 @@ make frontend/dev
 
 ---
 
+## API Conventions
+
+### Pagination
+
+All list endpoints support cursor-free page/offset pagination via query parameters:
+
+| Parameter | Default | Max  | Description              |
+|-----------|---------|------|--------------------------|
+| `page`    | `1`     | —    | 1-based page number      |
+| `limit`   | `20`    | `100`| Items per page           |
+
+Paginated responses use a consistent envelope shape:
+
+```json
+{
+  "data": [ ... ],
+  "pagination": { "page": 1, "limit": 20, "total": 42 }
+}
+```
+
+`total` is the count of all matching records (not just the current page), enabling
+clients to calculate the number of pages: `ceil(total / limit)`.
+
+The defaults and the `limit` cap are enforced in `domain.NewPaginationParams`.
+
+---
+
 ## Architecture Overview
 
 See [docs/architecture.md](docs/architecture.md) for the full layer diagram and
