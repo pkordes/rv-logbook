@@ -20,6 +20,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
 
+  /tags:
+    get:
+      operationId: ListTags
+      summary: List tags, optionally filtered by name prefix
+      description: Returns tags whose slug starts with the normalized q parameter. Pass no q to return all tags. Useful for autocomplete.
+      tags:
+        - tags
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by slug prefix (case-insensitive).
+      responses:
+        "200":
+          description: A list of matching tags ordered by slug.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tag"
+
   /trips:
     post:
       operationId: CreateTrip
@@ -276,6 +300,108 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /trips/{tripId}/stops/{stopId}/tags:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stopId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      operationId: ListTagsByStop
+      summary: List tags on a stop
+      tags:
+        - tags
+      responses:
+        "200":
+          description: Tags linked to the stop, ordered by slug.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tag"
+        "404":
+          description: Stop not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      operationId: AddTagToStop
+      summary: Add a tag to a stop
+      tags:
+        - tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddTagRequest"
+      responses:
+        "201":
+          description: Tag linked to the stop. Returns the tag.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "404":
+          description: Stop not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error — tag name is required or contains no usable characters.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /trips/{tripId}/stops/{stopId}/tags/{slug}:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stopId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+
+    delete:
+      operationId: RemoveTagFromStop
+      summary: Remove a tag from a stop
+      tags:
+        - tags
+      responses:
+        "204":
+          description: Tag removed from stop. No response body.
+        "404":
+          description: Tag not linked to stop.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthResponse:
@@ -471,3 +597,33 @@ components:
         notes:
           type: string
           example: "Pacific coast route"
+
+    Tag:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "National Park"
+        slug:
+          type: string
+          example: "national-park"
+        created_at:
+          type: string
+          format: date-time
+
+    AddTagRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "National Park"
