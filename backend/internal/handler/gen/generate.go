@@ -4,4 +4,4 @@
 // To regenerate, run: make backend/generate
 package gen
 
-//go:generate oapi-codegen --config ../../../oapi-codegen.yaml ../../../openapi.yaml
+//go:generate oapi-codegen --config ../../../oapi-codegen.yaml ../../../spec/openapi.yaml
