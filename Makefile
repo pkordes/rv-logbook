@@ -85,13 +85,13 @@ backend/build:
 backend/check:
 	cd $(BACKEND_DIR) && go build ./...
 
-## Run all Go tests via gotestsum.
+## Run all Go tests including integration tests.
+## -tags integration includes files gated by //go:build integration.
 ## -p 1 runs one test package at a time — required because integration tests
 ## share a single Postgres database and would conflict if run in parallel.
-## -race is omitted locally: it requires CGO (a C compiler).
-## The race detector runs in CI on Linux where gcc is available.
+## Requires TEST_DATABASE_URL to be set (see .env.example).
 backend/test:
-	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 -p 1 ./...
+	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -tags integration -count=1 -p 1 ./...
 
 ## Run service-layer unit tests only. No database required.
 ## Use during TDD inner loop for fast feedback on service logic.
@@ -103,11 +103,12 @@ backend/test/service:
 backend/test/handler:
 	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 ./internal/handler/...
 
-## Run all tests except integration tests (no database required).
-## Explicitly clears TEST_DATABASE_URL so integration tests skip even if .env is loaded.
-## Used by branch CI and by developers who want fast feedback without a running DB.
+## Run all tests excluding integration tests (no database required).
+## Integration test files are gated by //go:build integration and are not
+## compiled at all without the tag — no env var trick needed.
+## Used by branch CI and by developers without a running DB.
 backend/test/unit:
-	cd $(BACKEND_DIR) && TEST_DATABASE_URL= gotestsum --format pkgname -- -count=1 ./...
+	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 ./...
 
 ## Run go vet and staticcheck.
 ## Both must pass with zero warnings — this mirrors the CI check.
