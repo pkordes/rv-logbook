@@ -27,7 +27,7 @@ GOOSE        := goose
 # ---------------------------------------------------------------------------
 
 .PHONY: help \
-        backend/run backend/build backend/check backend/test \
+        backend/run backend/build backend/check backend/test backend/test/unit \
 		backend/test/service backend/test/handler \
 		backend/lint backend/generate \
         frontend/dev frontend/build frontend/test frontend/lint \
@@ -46,6 +46,7 @@ help: ## Show this help message
 	$(info     make backend/build      Compile Go binary to backend/bin/api)
 	$(info     make backend/check      Compile all packages without producing a binary)
 	$(info     make backend/test       Run all Go tests (all packages, DB required))
+	$(info     make backend/test/unit  Run all tests, skip integration tests (no DB required))
 	$(info     make backend/test/service  Run service-layer unit tests only (no DB))
 	$(info     make backend/test/handler  Run handler-layer unit tests only (no DB))
 	$(info     make backend/lint       Run go vet + staticcheck)
@@ -101,6 +102,12 @@ backend/test/service:
 ## Uses httptest — no live server or DB needed.
 backend/test/handler:
 	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 ./internal/handler/...
+
+## Run all tests except integration tests (no database required).
+## Explicitly clears TEST_DATABASE_URL so integration tests skip even if .env is loaded.
+## Used by branch CI and by developers who want fast feedback without a running DB.
+backend/test/unit:
+	cd $(BACKEND_DIR) && TEST_DATABASE_URL= gotestsum --format pkgname -- -count=1 ./...
 
 ## Run go vet and staticcheck.
 ## Both must pass with zero warnings — this mirrors the CI check.
