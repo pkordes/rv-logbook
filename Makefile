@@ -138,9 +138,10 @@ frontend/build:
 frontend/test:
 	npm --prefix $(FRONTEND_DIR) run test -- --run
 
-## Run ESLint across all TypeScript/TSX source files.
+## Run ESLint and TypeScript type-check across all source files.
 frontend/lint:
 	npm --prefix $(FRONTEND_DIR) run lint
+	npm --prefix $(FRONTEND_DIR) run typecheck
 
 # ---------------------------------------------------------------------------
 # Database targets (all use goose against the local compose Postgres)
