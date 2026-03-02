@@ -1,5 +1,10 @@
 # RV Logbook — Go + React
 
+[![Backend](https://github.com/pkordes/rv-logbook/actions/workflows/backend.yml/badge.svg)](https://github.com/pkordes/rv-logbook/actions/workflows/backend.yml)
+[![Backend PR](https://github.com/pkordes/rv-logbook/actions/workflows/backend-pr.yml/badge.svg)](https://github.com/pkordes/rv-logbook/actions/workflows/backend-pr.yml)
+[![Frontend](https://github.com/pkordes/rv-logbook/actions/workflows/frontend.yml/badge.svg)](https://github.com/pkordes/rv-logbook/actions/workflows/frontend.yml)
+[![Frontend PR](https://github.com/pkordes/rv-logbook/actions/workflows/frontend-pr.yml/badge.svg)](https://github.com/pkordes/rv-logbook/actions/workflows/frontend-pr.yml)
+
 A small, production-style web app for full-time RV life:
 - log trips and stops (campgrounds/parks)
 - add notes + tags for quick filtering (e.g. `quiet`, `good-cell`, `50amp`)

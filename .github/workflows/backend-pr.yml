@@ -67,12 +67,43 @@ jobs:
           git show origin/main:backend/spec/openapi.yaml > /tmp/openapi-base.yaml
           oasdiff breaking /tmp/openapi-base.yaml backend/spec/openapi.yaml
 
-  # integration-tests:
-  #   name: Backend / Integration Tests
-  #   # Added in Phase 8 once migrations are stable.
-  #   # Requires a Postgres service container — acceptable at PR time, not branch.
-  #   runs-on: ubuntu-latest
-  #   services:
-  #     postgres:
-  #       image: postgres:16
-  #       ...
+  integration-tests:
+    name: Backend / Integration Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rvlogbook_test
+        ports:
+          - 5432:5432
+        options: >
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # All tests, including integration tests (no -short flag).
+      # TEST_DATABASE_URL is read by testutil.NewPool; tests skip automatically
+      # if the variable is absent, so the unit-test job is unaffected.
+      - name: Integration tests
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/rvlogbook_test
+        run: go test -race -count=1 ./...
