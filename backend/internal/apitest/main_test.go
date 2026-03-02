@@ -1,6 +1,6 @@
 //go:build integration
 
-package repo_test
+package apitest_test
 
 import (
 	"context"
@@ -14,21 +14,18 @@ import (
 	"github.com/pkordes/rv-logbook/backend/testutil"
 )
 
-// TestMain runs before any test in the repo_test package.
-// It applies all pending migrations to the test database so individual tests
-// never need to think about schema state.
+// TestMain applies all pending migrations once before any test in this package
+// runs. This is identical to the pattern in internal/repo — each package that
+// runs against a real DB manages its own migration setup.
 //
-// This is the Go equivalent of a JUnit @BeforeAll — it runs once for the
-// entire test binary, not once per test function.
+// Unlike the repo tests, apitest tests cannot use per-test transactions for
+// isolation (an HTTP handler opens its own DB connection). Each test creates
+// its own data and removes it via t.Cleanup.
 func TestMain(m *testing.M) {
 	if os.Getenv("TEST_DATABASE_URL") == "" {
-		// No test DB configured — skip all tests in this package cleanly.
 		os.Exit(m.Run())
 	}
 
-	// Use a plain *sql.DB for goose (it needs database/sql, not pgx pool).
-	// We construct it manually here rather than through testutil.NewPool
-	// because TestMain doesn't have a *testing.T to pass.
 	db := testutil.MustOpenSQLDB(os.Getenv("TEST_DATABASE_URL"))
 	defer db.Close()
 

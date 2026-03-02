@@ -12,10 +12,6 @@ jobs:
     name: Backend / Build & Lint
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: backend
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,13 +22,21 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - name: go vet
-        run: go vet ./...
+      # Install the same tools that developers install locally (see CONTRIBUTING.md).
+      # Using the same make targets as local dev guarantees flags and behaviour are identical.
+      - name: Install tools
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go install gotest.tools/gotestsum@latest
+
+      - name: Lint
+        run: make backend/lint
 
       - name: Build
-        run: go build ./...
+        run: make backend/build
 
-      # Unit tests (no DB required).
-      # Integration tests are added in Phase 8 once migrations exist.
+      # Unit tests only (no DB). make backend/test/unit clears TEST_DATABASE_URL
+      # so integration tests skip even if the variable leaks from the environment.
       - name: Test (unit)
-        run: go test -race -count=1 -short ./...
+        run: make backend/test/unit
+

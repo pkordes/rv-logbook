@@ -106,7 +106,8 @@ make frontend/dev
 | `make backend/run` | Start the Go API server |
 | `make backend/build` | Compile Go binary to `backend/bin/api` |
 | `make backend/check` | Compile all packages without producing a binary (fast refactor check) |
-| `make backend/test` | Run all Go tests — all packages, DB required |
+| `make backend/test` | Run all Go tests including integration tests — DB required (`-tags integration`) |
+| `make backend/test/unit` | Run all tests excluding integration tests — no DB required |
 | `make backend/test/service` | Run service-layer unit tests only (no DB — fast TDD loop) |
 | `make backend/test/handler` | Run handler-layer unit tests only (no DB — fast TDD loop) |
 | `make backend/lint` | Run `go vet` + `staticcheck` |
@@ -120,6 +121,37 @@ make frontend/dev
 | `make db/migrate` | Apply pending migrations (`goose up`) |
 | `make db/rollback` | Roll back last migration (`goose down`) |
 | `make db/reset` | Wipe dev DB and re-apply all migrations |
+
+---
+
+## Testing Layers
+
+The backend has three distinct test layers. Each is independent and tests a different slice of the stack:
+
+| Layer | Package | DB? | What it tests |
+|-------|---------|-----|---------------|
+| Handler unit tests | `internal/handler/` | No | HTTP handler logic; service is a hand-written mock |
+| Repo integration tests | `internal/repo/` | Yes | SQL correctness; each test wraps work in a transaction and rolls back |
+| API integration tests | `internal/apitest/` | Yes | Full stack wired end-to-end: real HTTP request → handler → service → repo → Postgres |
+
+### Integration test build tag
+
+All integration test files begin with:
+
+```go
+//go:build integration
+```
+
+This means the Go compiler **excludes those files entirely** unless you pass `-tags integration`. No environment variable guessing, no `t.Skip` calls — the compiler enforces it.
+
+- `make backend/test/unit` — no tag, no DB needed, fast
+- `make backend/test` — passes `-tags integration`, requires `TEST_DATABASE_URL`
+
+Branch CI calls `make backend/test/unit`. PR CI calls `make backend/test` with a real Postgres service container.
+
+### API integration test isolation
+
+Repo tests use per-test DB transactions (rolled back in `t.Cleanup`) because the repo layer has direct pool access. API tests cannot use this technique — each HTTP request opens its own connection. Instead, each API test creates its own data and registers a `t.Cleanup` delete. Tests use unique names (e.g. timestamp-prefixed) where ordering or list results matter.
 
 ---
 
