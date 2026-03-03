@@ -43,6 +43,7 @@ type TagServicer interface {
 	List(ctx context.Context, prefix string) ([]domain.Tag, error)
 	ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
 	UpdateName(ctx context.Context, slug, name string) (domain.Tag, error)
+	Delete(ctx context.Context, slug string) error
 }
 
 // ExportServicer defines the business operations the export handler depends on.

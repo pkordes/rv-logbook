@@ -108,3 +108,16 @@ func (s *Server) PatchTag(ctx context.Context, req gen.PatchTagRequestObject) (g
 	}
 	return gen.PatchTag200JSONResponse(tagToResponse(tag)), nil
 }
+
+// DeleteTag handles DELETE /tags/{slug}.
+// Permanently removes a tag and unlinks it from all stops via CASCADE.
+func (s *Server) DeleteTag(ctx context.Context, req gen.DeleteTagRequestObject) (gen.DeleteTagResponseObject, error) {
+	err := s.tags.Delete(ctx, req.Slug)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return gen.DeleteTag404JSONResponse(notFoundBody("tag not found")), nil
+		}
+		return nil, err
+	}
+	return gen.DeleteTag204Response{}, nil
+}

@@ -93,6 +93,15 @@ func (s *TagService) UpdateName(ctx context.Context, slug, name string) (domain.
 	return result, nil
 }
 
+// Delete permanently removes a tag identified by slug.
+// Returns domain.ErrNotFound if no tag with that slug exists.
+func (s *TagService) Delete(ctx context.Context, slug string) error {
+	if err := s.tags.Delete(ctx, slug); err != nil {
+		return fmt.Errorf("service.TagService.Delete: %w", err)
+	}
+	return nil
+}
+
 // toSlug converts a display name to a URL-safe, lowercase, hyphenated slug.
 // Examples:
 //
