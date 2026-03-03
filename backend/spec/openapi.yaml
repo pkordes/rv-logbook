@@ -89,6 +89,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TagList"
+    post:
+      operationId: CreateTag
+      summary: Create a tag by name
+      description: Upserts a tag — if a tag with the normalised slug already exists it is returned unchanged. Returns 201 in both cases.
+      tags:
+        - tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTagRequest"
+      responses:
+        "201":
+          description: Tag created (or already existed — idempotent).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "422":
+          description: Validation error — name is empty or contains no usable characters.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /tags/{slug}:
     parameters:
@@ -787,6 +812,17 @@ components:
       properties:
         name:
           type: string
+          example: "National Park"
+
+    CreateTagRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Display name for the tag. Will be normalised to a lowercase hyphenated slug.
           example: "National Park"
 
     ExportRow:
