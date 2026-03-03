@@ -7,11 +7,11 @@ import { TagInput } from './TagInput'
 // Mock the tags API so tests never hit the network
 // ---------------------------------------------------------------------------
 
-vi.mock('../../api/tags', () => ({
+vi.mock('../api/tags', () => ({
   searchTags: vi.fn(),
 }))
 
-import { searchTags } from '../../api/tags'
+import { searchTags } from '../api/tags'
 const mockSearchTags = vi.mocked(searchTags)
 
 // ---------------------------------------------------------------------------
