@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -35,6 +36,18 @@ const mockTrip = {
   notes: '',
   created_at: '2025-01-01T00:00:00Z',
   updated_at: '2025-01-01T00:00:00Z',
+};
+
+const mockStop = {
+  id: '00000000-0000-4000-8000-000000000002',
+  trip_id: TRIP_ID,
+  name: 'Yellowstone Camp',
+  location: null,
+  arrived_at: '2025-06-02T00:00:00Z',
+  departed_at: null,
+  notes: null,
+  created_at: '2025-06-01T00:00:00Z',
+  updated_at: '2025-06-01T00:00:00Z',
 };
 
 const mockStopList = {
@@ -109,5 +122,33 @@ describe('TripDetailPage', () => {
 
     renderPage();
     expect(screen.getByText(/failed to load trip/i)).toBeInTheDocument();
+  });
+
+  it('switches to the edit form when the edit button is clicked', async () => {
+    vi.spyOn(stopQueries, 'useStops').mockReturnValue({
+      data: { data: [mockStop], pagination: { page: 1, limit: 20, total: 1 } },
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof stopQueries.useStops>);
+
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /edit yellowstone camp/i }));
+
+    expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/stop name/i)).toHaveValue('Yellowstone Camp');
+  });
+
+  it('returns to the add stop form when Cancel is clicked in edit mode', async () => {
+    vi.spyOn(stopQueries, 'useStops').mockReturnValue({
+      data: { data: [mockStop], pagination: { page: 1, limit: 20, total: 1 } },
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof stopQueries.useStops>);
+
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /edit yellowstone camp/i }));
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(screen.getByRole('button', { name: /add stop/i })).toBeInTheDocument();
   });
 });

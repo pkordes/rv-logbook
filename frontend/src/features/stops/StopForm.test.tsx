@@ -1,6 +1,20 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StopForm } from './StopForm';
+import type { Stop } from '../../api/stops';
+
+const makeInitialStop = (overrides: Partial<Stop> = {}): Stop => ({
+  id: '00000000-0000-4000-8000-000000000002',
+  trip_id: '00000000-0000-4000-8000-000000000001',
+  name: 'Yellowstone Camp',
+  location: null,
+  arrived_at: '2025-06-02T00:00:00Z',
+  departed_at: null,
+  notes: null,
+  created_at: '2025-06-01T00:00:00Z',
+  updated_at: '2025-06-01T00:00:00Z',
+  ...overrides,
+});
 
 describe('StopForm', () => {
   it('renders name, arrived_at, and a submit button', () => {
@@ -84,5 +98,29 @@ describe('StopForm', () => {
   it('disables the submit button while isSubmitting is true', () => {
     render(<StopForm onSubmit={vi.fn()} isSubmitting={true} />);
     expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled();
+  });
+
+  it('pre-fills the form with initialValues when provided', () => {
+    const stop = makeInitialStop();
+    render(<StopForm onSubmit={vi.fn()} isSubmitting={false} initialValues={stop} />);
+    expect(screen.getByLabelText(/stop name/i)).toHaveValue('Yellowstone Camp');
+    // arrived_at is stored as RFC 3339; form should display just the date part
+    expect(screen.getByLabelText(/arrived at/i)).toHaveValue('2025-06-02');
+  });
+
+  it('shows a Save Changes button when initialValues is provided', () => {
+    const stop = makeInitialStop();
+    render(<StopForm onSubmit={vi.fn()} isSubmitting={false} initialValues={stop} />);
+    expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
+  });
+
+  it('calls onCancel when the cancel button is clicked', async () => {
+    const onCancel = vi.fn();
+    const stop = makeInitialStop();
+    render(
+      <StopForm onSubmit={vi.fn()} isSubmitting={false} initialValues={stop} onCancel={onCancel} />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 });

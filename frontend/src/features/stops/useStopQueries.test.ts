@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { createElement, type ReactNode } from 'react'
-import { useStops, useCreateStop, useDeleteStop, stopKeys } from './useStopQueries'
+import { useStops, useCreateStop, useDeleteStop, useUpdateStop, stopKeys } from './useStopQueries'
 import * as stopsApi from '../../api/stops'
 import type { Stop } from '../../api/stops'
 
@@ -107,5 +107,27 @@ describe('useDeleteStop', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(stopsApi.deleteStop).toHaveBeenCalledWith(TRIP_ID, STOP_ID)
+  })
+})
+
+describe('useUpdateStop', () => {
+  it('calls updateStop with tripId, stopId, and input', async () => {
+    const updated = { ...validStop, name: 'Updated Camp' }
+    vi.spyOn(stopsApi, 'updateStop').mockResolvedValue(updated)
+    vi.spyOn(stopsApi, 'listStops').mockResolvedValue(validStopList)
+
+    const wrapper = makeWrapper()
+    const { result } = renderHook(() => useUpdateStop(TRIP_ID), { wrapper })
+
+    result.current.mutate({
+      stopId: STOP_ID,
+      input: { name: 'Updated Camp', arrived_at: '2025-06-02T00:00:00Z' },
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(stopsApi.updateStop).toHaveBeenCalledWith(TRIP_ID, STOP_ID, {
+      name: 'Updated Camp',
+      arrived_at: '2025-06-02T00:00:00Z',
+    })
   })
 })
