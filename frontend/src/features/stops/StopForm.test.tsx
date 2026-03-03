@@ -1,7 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import { StopForm } from './StopForm';
 import type { Stop } from '../../api/stops';
+
+// Prevent TagInput's autocomplete effect from making real network calls.
+vi.mock('../../api/tags', () => ({ searchTags: vi.fn().mockResolvedValue([]) }));
 
 const makeInitialStop = (overrides: Partial<Stop> = {}): Stop => ({
   id: '00000000-0000-4000-8000-000000000002',
@@ -13,6 +17,7 @@ const makeInitialStop = (overrides: Partial<Stop> = {}): Stop => ({
   notes: null,
   created_at: '2025-06-01T00:00:00Z',
   updated_at: '2025-06-01T00:00:00Z',
+  tags: [],
   ...overrides,
 });
 
@@ -64,24 +69,31 @@ describe('StopForm', () => {
     );
   });
 
-  it('parses comma-separated tags into an array', async () => {
+  it('adds tags via TagInput and submits them as tagNames', async () => {
     const onSubmit = vi.fn();
     render(<StopForm onSubmit={onSubmit} isSubmitting={false} />);
 
     await userEvent.type(screen.getByLabelText(/stop name/i), 'Test Stop');
     await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-06-01');
-    await userEvent.type(screen.getByLabelText(/tags/i), 'camping, national park , hiking');
+
+    // TagInput renders an inner input with aria-label="Add tag"
+    const tagInput = screen.getByRole('textbox', { name: /add tag/i });
+    await userEvent.type(tagInput, 'camping');
+    await userEvent.keyboard('{Enter}');
+    await userEvent.type(tagInput, 'national park');
+    await userEvent.keyboard('{Enter}');
+
     await userEvent.click(screen.getByRole('button', { name: /add stop/i }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        tagNames: ['camping', 'national park', 'hiking'],
+        tagNames: ['camping', 'national park'],
       }),
     );
   });
 
-  it('calls onSubmit with an empty tagNames array when tags field is blank', async () => {
+  it('calls onSubmit with an empty tagNames array when no tags are added', async () => {
     const onSubmit = vi.fn();
     render(<StopForm onSubmit={onSubmit} isSubmitting={false} />);
 

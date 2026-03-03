@@ -13,6 +13,7 @@ const makeStop = (overrides: Partial<Stop> = {}): Stop => ({
   notes: null,
   created_at: '2025-06-01T00:00:00Z',
   updated_at: '2025-06-01T00:00:00Z',
+  tags: [],
   ...overrides,
 });
 
@@ -68,5 +69,27 @@ describe('StopList', () => {
     await userEvent.click(screen.getByRole('button', { name: /edit yellowstone camp/i }));
     expect(onEdit).toHaveBeenCalledOnce();
     expect(onEdit).toHaveBeenCalledWith(stop);
+  });
+
+  it('renders tags as pills when the stop has tags', () => {
+    const stop = makeStop({
+      tags: [
+        { id: '00000000-0000-4000-8000-000000000010', name: 'Mountain', slug: 'mountain', created_at: '2025-06-01T00:00:00Z' },
+        { id: '00000000-0000-4000-8000-000000000011', name: 'National Park', slug: 'national-park', created_at: '2025-06-01T00:00:00Z' },
+      ],
+    });
+    render(<StopList stops={[stop]} onDelete={vi.fn()} onEdit={vi.fn()} />);
+
+    expect(screen.getByText('Mountain')).toBeInTheDocument();
+    expect(screen.getByText('National Park')).toBeInTheDocument();
+  });
+
+  it('renders no tag pills when the stop has no tags', () => {
+    const stop = makeStop({ tags: [] });
+    render(<StopList stops={[stop]} onDelete={vi.fn()} onEdit={vi.fn()} />);
+
+    // Should still render the stop without crashing, just no pill text
+    expect(screen.getByText('Yellowstone Camp')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
   });
 });

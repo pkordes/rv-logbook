@@ -227,3 +227,69 @@ func TestStopRepo_Delete_WrongTrip(t *testing.T) {
 
 	assert.ErrorIs(t, err, domain.ErrNotFound)
 }
+
+// ---- Tags embedded on Stop responses --------------------------------------
+// These tests verify that GetByID and ListByTripIDPaged include the Tags slice
+// populated from the stop_tags join, so callers never need a separate round-trip.
+
+func TestStopRepo_GetByID_IncludesTags(t *testing.T) {
+	// reuse newTestTagRepos so all three repos share the same transaction.
+	tripRepo, stopRepo, tagRepo := newTestTagRepos(t)
+	ctx := context.Background()
+
+	parent := mustCreateTrip(t, tripRepo)
+	created, err := stopRepo.Create(ctx, stopFixture(parent.ID))
+	require.NoError(t, err)
+
+	tag, err := tagRepo.Upsert(ctx, "Mountains", "mountains")
+	require.NoError(t, err)
+	require.NoError(t, tagRepo.AddToStop(ctx, created.ID, tag.ID))
+
+	got, err := stopRepo.GetByID(ctx, parent.ID, created.ID)
+
+	require.NoError(t, err)
+	require.Len(t, got.Tags, 1, "stop should include its linked tags")
+	assert.Equal(t, "mountains", got.Tags[0].Slug)
+	assert.Equal(t, "Mountains", got.Tags[0].Name)
+}
+
+func TestStopRepo_GetByID_EmptyTags(t *testing.T) {
+	tripRepo, stopRepo, _ := newTestTagRepos(t)
+	ctx := context.Background()
+
+	parent := mustCreateTrip(t, tripRepo)
+	created, err := stopRepo.Create(ctx, stopFixture(parent.ID))
+	require.NoError(t, err)
+
+	got, err := stopRepo.GetByID(ctx, parent.ID, created.ID)
+
+	require.NoError(t, err)
+	assert.NotNil(t, got.Tags, "Tags must be an empty slice, not nil")
+	assert.Empty(t, got.Tags)
+}
+
+func TestStopRepo_ListByTripIDPaged_IncludesTags(t *testing.T) {
+	tripRepo, stopRepo, tagRepo := newTestTagRepos(t)
+	ctx := context.Background()
+
+	parent := mustCreateTrip(t, tripRepo)
+	created, err := stopRepo.Create(ctx, stopFixture(parent.ID))
+	require.NoError(t, err)
+
+	tag1, err := tagRepo.Upsert(ctx, "Desert", "desert")
+	require.NoError(t, err)
+	tag2, err := tagRepo.Upsert(ctx, "Mountains", "mountains")
+	require.NoError(t, err)
+	require.NoError(t, tagRepo.AddToStop(ctx, created.ID, tag1.ID))
+	require.NoError(t, tagRepo.AddToStop(ctx, created.ID, tag2.ID))
+
+	stops, total, err := stopRepo.ListByTripIDPaged(ctx, parent.ID, domain.NewPaginationParams(nil, nil))
+
+	require.NoError(t, err)
+	require.EqualValues(t, 1, total)
+	require.Len(t, stops, 1)
+	require.Len(t, stops[0].Tags, 2, "both tags should be embedded")
+	// Tags are ordered by slug: desert < mountains
+	assert.Equal(t, "desert", stops[0].Tags[0].Slug)
+	assert.Equal(t, "mountains", stops[0].Tags[1].Slug)
+}

@@ -59,11 +59,42 @@ export interface paths {
          */
         get: operations["ListTags"];
         put?: never;
-        post?: never;
+        /**
+         * Create a tag by name
+         * @description Upserts a tag — if a tag with the normalised slug already exists it is returned unchanged. Returns 201 in both cases.
+         */
+        post: operations["CreateTag"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/tags/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The slug of the tag to update. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a tag
+         * @description Permanently deletes a tag and removes it from all stops. This action cannot be undone.
+         */
+        delete: operations["DeleteTag"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a tag's display name
+         * @description Updates only the display name of a tag. The slug is the stable identifier and is never changed by this operation.
+         */
+        patch: operations["PatchTag"];
         trace?: never;
     };
     "/trips": {
@@ -314,6 +345,8 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+            /** @description Tags linked to this stop, ordered by slug. */
+            tags?: components["schemas"]["Tag"][];
         };
         UpdateTripRequest: {
             /** @example Summer Tour 2025 */
@@ -343,6 +376,17 @@ export interface components {
         };
         AddTagRequest: {
             /** @example National Park */
+            name: string;
+        };
+        PatchTagRequest: {
+            /** @example National Park */
+            name: string;
+        };
+        CreateTagRequest: {
+            /**
+             * @description Display name for the tag. Will be normalised to a lowercase hyphenated slug.
+             * @example National Park
+             */
             name: string;
         };
         ExportRow: {
@@ -477,6 +521,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TagList"];
+                };
+            };
+        };
+    };
+    CreateTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTagRequest"];
+            };
+        };
+        responses: {
+            /** @description Tag created (or already existed — idempotent). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Validation error — name is empty or contains no usable characters. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    DeleteTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The slug of the tag to update. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tag deleted successfully. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tag not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    PatchTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The slug of the tag to update. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchTagRequest"];
+            };
+        };
+        responses: {
+            /** @description Tag updated successfully. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Tag not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation error — name is required. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

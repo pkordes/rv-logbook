@@ -35,6 +35,16 @@ type TagRepo interface {
 
 	// ListByStop returns all tags linked to a stop, ordered by slug.
 	ListByStop(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
+
+	// UpdateName sets the display name of an existing tag identified by slug.
+	// The slug is immutable — only the name changes.
+	// Returns domain.ErrNotFound if no tag with that slug exists.
+	UpdateName(ctx context.Context, slug, name string) (domain.Tag, error)
+
+	// Delete permanently removes a tag by slug.
+	// All stop_tags rows referencing this tag are removed via ON DELETE CASCADE.
+	// Returns domain.ErrNotFound if no tag with that slug exists.
+	Delete(ctx context.Context, slug string) error
 }
 
 // pgTagRepo is the Postgres implementation of TagRepo.
@@ -196,6 +206,37 @@ func (r *pgTagRepo) ListByStop(ctx context.Context, stopID uuid.UUID) ([]domain.
 		return nil, fmt.Errorf("repo.TagRepo.ListByStop: rows: %w", err)
 	}
 	return tags, nil
+}
+
+// UpdateName sets the display name of an existing tag identified by slug.
+// The slug is immutable and is never changed by this operation.
+func (r *pgTagRepo) UpdateName(ctx context.Context, slug, name string) (domain.Tag, error) {
+	const q = `
+		UPDATE tags
+		SET name = @name
+		WHERE slug = @slug
+		RETURNING id, name, slug, created_at`
+
+	row := r.db.QueryRow(ctx, q, pgx.NamedArgs{"slug": slug, "name": name})
+	result, err := scanTag(row)
+	if err != nil {
+		return domain.Tag{}, fmt.Errorf("repo.TagRepo.UpdateName: %w", err)
+	}
+	return result, nil
+}
+
+// Delete permanently removes a tag by slug.
+func (r *pgTagRepo) Delete(ctx context.Context, slug string) error {
+	const q = `DELETE FROM tags WHERE slug = @slug`
+
+	tag, err := r.db.Exec(ctx, q, pgx.NamedArgs{"slug": slug})
+	if err != nil {
+		return fmt.Errorf("repo.TagRepo.Delete: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
 }
 
 // scanTag maps a single database row into a domain.Tag.

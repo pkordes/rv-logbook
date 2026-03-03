@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,8 +22,11 @@ import (
 // ---- mock TagServicer -------------------------------------------------------
 
 type mockTagServicer struct {
-	list      func(ctx context.Context, prefix string) ([]domain.Tag, error)
-	listPaged func(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
+	list         func(ctx context.Context, prefix string) ([]domain.Tag, error)
+	listPaged    func(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
+	updateName   func(ctx context.Context, slug, name string) (domain.Tag, error)
+	deleteTag    func(ctx context.Context, slug string) error
+	upsertByName func(ctx context.Context, name string) (domain.Tag, error)
 }
 
 func (m *mockTagServicer) List(ctx context.Context, prefix string) ([]domain.Tag, error) {
@@ -30,6 +34,24 @@ func (m *mockTagServicer) List(ctx context.Context, prefix string) ([]domain.Tag
 }
 func (m *mockTagServicer) ListPaged(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error) {
 	return m.listPaged(ctx, prefix, p)
+}
+func (m *mockTagServicer) UpdateName(ctx context.Context, slug, name string) (domain.Tag, error) {
+	if m.updateName != nil {
+		return m.updateName(ctx, slug, name)
+	}
+	return domain.Tag{}, nil
+}
+func (m *mockTagServicer) Delete(ctx context.Context, slug string) error {
+	if m.deleteTag != nil {
+		return m.deleteTag(ctx, slug)
+	}
+	return nil
+}
+func (m *mockTagServicer) UpsertByName(ctx context.Context, name string) (domain.Tag, error) {
+	if m.upsertByName != nil {
+		return m.upsertByName(ctx, name)
+	}
+	return domain.Tag{}, nil
 }
 
 // compile-time check: mockTagServicer must satisfy handler.TagServicer.
@@ -225,4 +247,134 @@ func TestRemoveTagFromStop_404_NotLinked(t *testing.T) {
 	var errResp gen.ErrorResponse
 	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
 	assert.Equal(t, "not_found", errResp.Error.Code)
+}
+
+// ---- PATCH /tags/{slug} ----------------------------------------------------
+
+func TestPatchTag_200(t *testing.T) {
+	tag := tagFixture()
+	tag.Name = "National Park"
+
+	svc := &mockTagServicer{
+		updateName: func(_ context.Context, slug, name string) (domain.Tag, error) {
+			assert.Equal(t, tag.Slug, slug)
+			assert.Equal(t, "National Park", name)
+			return tag, nil
+		},
+	}
+
+	body := `{"name":"National Park"}`
+	req := httptest.NewRequest(http.MethodPatch, "/tags/"+tag.Slug, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var resp gen.Tag
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+	assert.Equal(t, "National Park", resp.Name)
+	assert.Equal(t, tag.Slug, resp.Slug)
+}
+
+func TestPatchTag_404(t *testing.T) {
+	svc := &mockTagServicer{
+		updateName: func(_ context.Context, _, _ string) (domain.Tag, error) {
+			return domain.Tag{}, domain.ErrNotFound
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodPatch, "/tags/no-such-slug", strings.NewReader(`{"name":"X"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNotFound, rec.Code)
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
+}
+
+func TestPatchTag_422_EmptyName(t *testing.T) {
+	svc := &mockTagServicer{
+		updateName: func(_ context.Context, _, _ string) (domain.Tag, error) {
+			return domain.Tag{}, fmt.Errorf("%w: tag name is required", domain.ErrValidation)
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodPatch, "/tags/some-slug", strings.NewReader(`{"name":""}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "validation_error", errResp.Error.Code)
+}
+
+// ---- DeleteTag -------------------------------------------------------------
+
+func TestDeleteTag_204(t *testing.T) {
+	svc := &mockTagServicer{}
+
+	req := httptest.NewRequest(http.MethodDelete, "/tags/national-park", nil)
+	rec := httptest.NewRecorder()
+	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNoContent, rec.Code)
+}
+
+func TestDeleteTag_404(t *testing.T) {
+	svc := &mockTagServicer{
+		deleteTag: func(_ context.Context, _ string) error {
+			return domain.ErrNotFound
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/tags/no-such-slug", nil)
+	rec := httptest.NewRecorder()
+	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNotFound, rec.Code)
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
+}
+
+// ---- CreateTag -------------------------------------------------------------
+
+func TestCreateTag_201(t *testing.T) {
+	svc := &mockTagServicer{
+		upsertByName: func(_ context.Context, name string) (domain.Tag, error) {
+			return tagFixture(), nil
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/tags", strings.NewReader(`{"name":"National Park"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusCreated, rec.Code)
+	var tag gen.Tag
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&tag))
+	assert.Equal(t, "National Park", tag.Name)
+}
+
+func TestCreateTag_422_EmptyName(t *testing.T) {
+	svc := &mockTagServicer{
+		upsertByName: func(_ context.Context, _ string) (domain.Tag, error) {
+			return domain.Tag{}, fmt.Errorf("%w: tag name is required", domain.ErrValidation)
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/tags", strings.NewReader(`{"name":""}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "validation_error", errResp.Error.Code)
 }

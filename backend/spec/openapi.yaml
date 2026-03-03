@@ -89,6 +89,86 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TagList"
+    post:
+      operationId: CreateTag
+      summary: Create a tag by name
+      description: Upserts a tag — if a tag with the normalised slug already exists it is returned unchanged. Returns 201 in both cases.
+      tags:
+        - tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTagRequest"
+      responses:
+        "201":
+          description: Tag created (or already existed — idempotent).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "422":
+          description: Validation error — name is empty or contains no usable characters.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tags/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The slug of the tag to update.
+    patch:
+      operationId: PatchTag
+      summary: Update a tag's display name
+      description: Updates only the display name of a tag. The slug is the stable identifier and is never changed by this operation.
+      tags:
+        - tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchTagRequest"
+      responses:
+        "200":
+          description: Tag updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "404":
+          description: Tag not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error — name is required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: DeleteTag
+      summary: Delete a tag
+      description: Permanently deletes a tag and removes it from all stops. This action cannot be undone.
+      tags:
+        - tags
+      responses:
+        "204":
+          description: Tag deleted successfully.
+        "404":
+          description: Tag not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /trips:
     post:
@@ -667,6 +747,11 @@ components:
         updated_at:
           type: string
           format: date-time
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+          description: Tags linked to this stop, ordered by slug.
 
     UpdateTripRequest:
       type: object
@@ -718,6 +803,26 @@ components:
       properties:
         name:
           type: string
+          example: "National Park"
+
+    PatchTagRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "National Park"
+
+    CreateTagRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Display name for the tag. Will be normalised to a lowercase hyphenated slug.
           example: "National Park"
 
     ExportRow:

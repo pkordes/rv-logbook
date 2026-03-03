@@ -49,6 +49,12 @@ type CreateStopRequest struct {
 	Notes      *string    `json:"notes,omitempty"`
 }
 
+// CreateTagRequest defines model for CreateTagRequest.
+type CreateTagRequest struct {
+	// Name Display name for the tag. Will be normalised to a lowercase hyphenated slug.
+	Name string `json:"name"`
+}
+
 // CreateTripRequest defines model for CreateTripRequest.
 type CreateTripRequest struct {
 	EndDate   *openapi_types.Date `json:"end_date,omitempty"`
@@ -99,6 +105,11 @@ type Pagination struct {
 	Total int `json:"total"`
 }
 
+// PatchTagRequest defines model for PatchTagRequest.
+type PatchTagRequest struct {
+	Name string `json:"name"`
+}
+
 // Stop defines model for Stop.
 type Stop struct {
 	ArrivedAt  time.Time          `json:"arrived_at"`
@@ -108,8 +119,11 @@ type Stop struct {
 	Location   *string            `json:"location,omitempty"`
 	Name       string             `json:"name"`
 	Notes      *string            `json:"notes,omitempty"`
-	TripId     openapi_types.UUID `json:"trip_id"`
-	UpdatedAt  time.Time          `json:"updated_at"`
+
+	// Tags Tags linked to this stop, ordered by slug.
+	Tags      *[]Tag             `json:"tags,omitempty"`
+	TripId    openapi_types.UUID `json:"trip_id"`
+	UpdatedAt time.Time          `json:"updated_at"`
 }
 
 // StopList defines model for StopList.
@@ -211,6 +225,12 @@ type ListStopsParams struct {
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// CreateTagJSONRequestBody defines body for CreateTag for application/json ContentType.
+type CreateTagJSONRequestBody = CreateTagRequest
+
+// PatchTagJSONRequestBody defines body for PatchTag for application/json ContentType.
+type PatchTagJSONRequestBody = PatchTagRequest
+
 // CreateTripJSONRequestBody defines body for CreateTrip for application/json ContentType.
 type CreateTripJSONRequestBody = CreateTripRequest
 
@@ -237,6 +257,15 @@ type ServerInterface interface {
 	// List tags, optionally filtered by name prefix
 	// (GET /tags)
 	ListTags(w http.ResponseWriter, r *http.Request, params ListTagsParams)
+	// Create a tag by name
+	// (POST /tags)
+	CreateTag(w http.ResponseWriter, r *http.Request)
+	// Delete a tag
+	// (DELETE /tags/{slug})
+	DeleteTag(w http.ResponseWriter, r *http.Request, slug string)
+	// Update a tag's display name
+	// (PATCH /tags/{slug})
+	PatchTag(w http.ResponseWriter, r *http.Request, slug string)
 	// List all trips
 	// (GET /trips)
 	ListTrips(w http.ResponseWriter, r *http.Request, params ListTripsParams)
@@ -297,6 +326,24 @@ func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
 // List tags, optionally filtered by name prefix
 // (GET /tags)
 func (_ Unimplemented) ListTags(w http.ResponseWriter, r *http.Request, params ListTagsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a tag by name
+// (POST /tags)
+func (_ Unimplemented) CreateTag(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a tag
+// (DELETE /tags/{slug})
+func (_ Unimplemented) DeleteTag(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update a tag's display name
+// (PATCH /tags/{slug})
+func (_ Unimplemented) PatchTag(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -462,6 +509,70 @@ func (siw *ServerInterfaceWrapper) ListTags(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListTags(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTag operation middleware
+func (siw *ServerInterfaceWrapper) CreateTag(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTag(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTag operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTag(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTag(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PatchTag operation middleware
+func (siw *ServerInterfaceWrapper) PatchTag(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchTag(w, r, slug)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1000,6 +1111,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/tags", wrapper.ListTags)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/tags", wrapper.CreateTag)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/tags/{slug}", wrapper.DeleteTag)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/tags/{slug}", wrapper.PatchTag)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/trips", wrapper.ListTrips)
 	})
 	r.Group(func(r chi.Router) {
@@ -1107,6 +1227,93 @@ type ListTags200JSONResponse TagList
 func (response ListTags200JSONResponse) VisitListTagsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTagRequestObject struct {
+	Body *CreateTagJSONRequestBody
+}
+
+type CreateTagResponseObject interface {
+	VisitCreateTagResponse(w http.ResponseWriter) error
+}
+
+type CreateTag201JSONResponse Tag
+
+func (response CreateTag201JSONResponse) VisitCreateTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTag422JSONResponse ErrorResponse
+
+func (response CreateTag422JSONResponse) VisitCreateTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTagRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type DeleteTagResponseObject interface {
+	VisitDeleteTagResponse(w http.ResponseWriter) error
+}
+
+type DeleteTag204Response struct {
+}
+
+func (response DeleteTag204Response) VisitDeleteTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTag404JSONResponse ErrorResponse
+
+func (response DeleteTag404JSONResponse) VisitDeleteTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchTagRequestObject struct {
+	Slug string `json:"slug"`
+	Body *PatchTagJSONRequestBody
+}
+
+type PatchTagResponseObject interface {
+	VisitPatchTagResponse(w http.ResponseWriter) error
+}
+
+type PatchTag200JSONResponse Tag
+
+func (response PatchTag200JSONResponse) VisitPatchTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchTag404JSONResponse ErrorResponse
+
+func (response PatchTag404JSONResponse) VisitPatchTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchTag422JSONResponse ErrorResponse
+
+func (response PatchTag422JSONResponse) VisitPatchTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -1496,6 +1703,15 @@ type StrictServerInterface interface {
 	// List tags, optionally filtered by name prefix
 	// (GET /tags)
 	ListTags(ctx context.Context, request ListTagsRequestObject) (ListTagsResponseObject, error)
+	// Create a tag by name
+	// (POST /tags)
+	CreateTag(ctx context.Context, request CreateTagRequestObject) (CreateTagResponseObject, error)
+	// Delete a tag
+	// (DELETE /tags/{slug})
+	DeleteTag(ctx context.Context, request DeleteTagRequestObject) (DeleteTagResponseObject, error)
+	// Update a tag's display name
+	// (PATCH /tags/{slug})
+	PatchTag(ctx context.Context, request PatchTagRequestObject) (PatchTagResponseObject, error)
 	// List all trips
 	// (GET /trips)
 	ListTrips(ctx context.Context, request ListTripsRequestObject) (ListTripsResponseObject, error)
@@ -1635,6 +1851,96 @@ func (sh *strictHandler) ListTags(w http.ResponseWriter, r *http.Request, params
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListTagsResponseObject); ok {
 		if err := validResponse.VisitListTagsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTag operation middleware
+func (sh *strictHandler) CreateTag(w http.ResponseWriter, r *http.Request) {
+	var request CreateTagRequestObject
+
+	var body CreateTagJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTag(ctx, request.(CreateTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTagResponseObject); ok {
+		if err := validResponse.VisitCreateTagResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteTag operation middleware
+func (sh *strictHandler) DeleteTag(w http.ResponseWriter, r *http.Request, slug string) {
+	var request DeleteTagRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTag(ctx, request.(DeleteTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteTagResponseObject); ok {
+		if err := validResponse.VisitDeleteTagResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PatchTag operation middleware
+func (sh *strictHandler) PatchTag(w http.ResponseWriter, r *http.Request, slug string) {
+	var request PatchTagRequestObject
+
+	request.Slug = slug
+
+	var body PatchTagJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PatchTag(ctx, request.(PatchTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PatchTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PatchTagResponseObject); ok {
+		if err := validResponse.VisitPatchTagResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

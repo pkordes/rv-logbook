@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { Stop } from '../../api/stops'
+import { TagInput } from '../../components/TagInput'
 
 /**
  * Converts a YYYY-MM-DD date string to a midnight UTC RFC 3339 timestamp.
@@ -35,17 +36,16 @@ const stopFormSchema = z.object({
     .string()
     .or(z.literal('').transform(() => undefined))
     .optional(),
-  /** Raw comma-separated tag names entered by the user. */
-  tagsRaw: z.string().optional(),
+  /** Pending tag names collected via TagInput. */
+  tags: z.array(z.string()).default([]),
 })
 
 type StopFormInput = z.input<typeof stopFormSchema>
 type StopFormOutput = z.output<typeof stopFormSchema>
 
 /**
- * Validated stop form values, including the parsed tag name array.
- * The `tagsRaw` field is also present (from the schema output) but consumers
- * should use `tagNames` instead.
+ * Validated stop form values passed to the onSubmit callback.
+ * `tagNames` is the list of tag name strings the user added via TagInput.
  */
 export type StopFormValues = StopFormOutput & { tagNames: string[] }
 
@@ -69,10 +69,11 @@ interface StopFormProps {
 }
 
 /**
- * Presentational form for adding a stop to a trip.
+ * Presentational form for adding or editing a stop on a trip.
  *
- * The tag input accepts a comma-separated list of names (e.g. "camping, national park").
- * Splitting and trimming happens here so callers receive a clean `string[]`.
+ * Uses {@link TagInput} for tag entry — pills are shown as the user types,
+ * with autocomplete from existing tags. The validated `tagNames` array is
+ * passed to the parent via `onSubmit`.
  */
 export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: StopFormProps) {
   const isEditing = Boolean(initialValues)
@@ -80,6 +81,7 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<StopFormInput>({
     resolver: zodResolver(stopFormSchema),
@@ -91,7 +93,7 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
           departed_at: initialValues.departed_at?.slice(0, 10) ?? '',
           location: initialValues.location ?? '',
           notes: initialValues.notes ?? '',
-          tagsRaw: '',
+          tags: initialValues.tags.map((t) => t.name),
         }
       : undefined,
   })
@@ -107,18 +109,14 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
         departed_at: initialValues.departed_at?.slice(0, 10) ?? '',
         location: initialValues.location ?? '',
         notes: initialValues.notes ?? '',
-        tagsRaw: '',
+        tags: initialValues.tags.map((t) => t.name),
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValues?.id])
 
   function handleValidSubmit(values: StopFormOutput) {
-    const tagNames = (values.tagsRaw ?? '')
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean)
-    onSubmit({ ...values, tagNames })
+    onSubmit({ ...values, tagNames: values.tags })
     reset()
   }
 
@@ -206,15 +204,15 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
 
       {/* Tags */}
       <div>
-        <label htmlFor="tags-raw" className="block text-sm font-medium text-gray-700">
-          Tags (comma-separated)
+        <label className="block text-sm font-medium text-gray-700">
+          Tags
         </label>
-        <input
-          id="tags-raw"
-          type="text"
-          {...register('tagsRaw')}
-          className="mt-1 block w-full rounded border-gray-300 shadow-sm"
-          placeholder="e.g. camping, national park"
+        <Controller
+          name="tags"
+          control={control}
+          render={({ field }) => (
+            <TagInput value={field.value ?? []} onChange={field.onChange} />
+          )}
         />
       </div>
 

@@ -1,4 +1,5 @@
 import type { Stop } from '../../api/stops';
+import { TagPill } from '../../components/TagPill';
 
 /** Props for {@link StopList}. */
 interface StopListProps {
@@ -38,6 +39,13 @@ export function StopList({ stops, onDelete, onEdit }: StopListProps) {
             <span className="ml-3 text-sm text-gray-400">
               {new Date(stop.arrived_at).toISOString().slice(0, 10)}
             </span>
+            {stop.tags.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {stop.tags.map((tag) => (
+                  <TagPill key={tag.slug} name={tag.name} />
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <button

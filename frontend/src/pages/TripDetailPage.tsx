@@ -6,7 +6,7 @@ import { StopList } from '../features/stops/StopList'
 import { StopForm, type StopFormValues } from '../features/stops/StopForm'
 import { useTrip } from '../features/trips/useTripQueries'
 import { useStops, useDeleteStop, stopKeys } from '../features/stops/useStopQueries'
-import { createStop, updateStop, addTagToStop } from '../api/stops'
+import { createStop, updateStop, addTagToStop, removeTagFromStop } from '../api/stops'
 import type { Stop } from '../api/stops'
 import { ApiError } from '../api/client'
 
@@ -21,10 +21,12 @@ import { ApiError } from '../api/client'
  *   1. POST /trips/:id/stops  → get the new stop's ID
  *   2. For each tagName: POST /trips/:id/stops/:stopId/tags
  *   3. Invalidate the stop list so the UI refreshes
- * The edit-stop flow is the same shape:
+ * The edit-stop flow:
  *   1. PUT /trips/:id/stops/:stopId  → update core fields
- *   2. For each tagName typed in the edit form: POST .../tags  (additive only,
- *      existing tags are not removed — full tag management is Phase 12)
+ *   2. Reconcile tags against the stop's current tags:
+ *      - Tags newly added in the form → POST .../tags
+ *      - Tags removed in the form (present before, absent now) → DELETE .../tags/:slug
+ *      - Tags unchanged → no API calls
  *   3. Invalidate the stop list so the UI refreshes
  * We manage both with direct API calls + useState rather than a useMutation
  * chain, which keeps the async logic explicit and easy to follow.
@@ -73,11 +75,19 @@ export function TripDetailPage() {
     setEditError(null)
     try {
       await updateStop(tripId, editingStop.id, values)
-      // Tags in the edit form are additive: existing tags are not removed.
-      // Full tag management (remove, replace) is Phase 12 work.
-      for (const name of values.tagNames) {
+
+      // Reconcile tags: add newly introduced names, remove deleted ones.
+      const originalNames = new Set(editingStop.tags.map((t) => t.name))
+      const tagsToAdd = values.tagNames.filter((n) => !originalNames.has(n))
+      const tagsToRemove = editingStop.tags.filter((t) => !values.tagNames.includes(t.name))
+
+      for (const name of tagsToAdd) {
         await addTagToStop(tripId, editingStop.id, { name })
       }
+      for (const tag of tagsToRemove) {
+        await removeTagFromStop(tripId, editingStop.id, tag.slug)
+      }
+
       await queryClient.invalidateQueries({ queryKey: stopKeys.list(tripId) })
       setEditingStop(null)
     } catch (e) {

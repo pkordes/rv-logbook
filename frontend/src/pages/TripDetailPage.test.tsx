@@ -8,6 +8,9 @@ import * as tripQueries from '../features/trips/useTripQueries';
 import * as stopQueries from '../features/stops/useStopQueries';
 import * as stopsApi from '../api/stops';
 
+// Prevent TagInput's autocomplete effect from making real network calls.
+vi.mock('../api/tags', () => ({ searchTags: vi.fn().mockResolvedValue([]) }));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -49,6 +52,7 @@ const mockStop = {
   notes: null,
   created_at: '2025-06-01T00:00:00Z',
   updated_at: '2025-06-01T00:00:00Z',
+  tags: [],
 };
 
 const mockStopList = {
@@ -172,7 +176,11 @@ describe('TripDetailPage', () => {
     renderPage();
     await userEvent.type(screen.getByLabelText(/stop name/i), 'Firehole Camp');
     await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-07-01');
-    await userEvent.type(screen.getByLabelText(/tags/i), 'camping, hiking');
+    const tagInput = screen.getByRole('textbox', { name: /add tag/i });
+    await userEvent.type(tagInput, 'camping');
+    await userEvent.keyboard('{Enter}');
+    await userEvent.type(tagInput, 'hiking');
+    await userEvent.keyboard('{Enter}');
     await userEvent.click(screen.getByRole('button', { name: /add stop/i }));
 
     await waitFor(() => expect(stopsApi.createStop).toHaveBeenCalledOnce());
@@ -200,7 +208,9 @@ describe('TripDetailPage', () => {
       expect(screen.getByLabelText(/stop name/i)).toHaveValue('Yellowstone Camp');
     });
 
-    await userEvent.type(screen.getByLabelText(/tags/i), 'wildlife');
+    const tagInput = screen.getByRole('textbox', { name: /add tag/i });
+    await userEvent.type(tagInput, 'wildlife');
+    await userEvent.keyboard('{Enter}');
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
     await waitFor(() => expect(stopsApi.updateStop).toHaveBeenCalledOnce());
@@ -211,5 +221,40 @@ describe('TripDetailPage', () => {
     );
     expect(stopsApi.addTagToStop).toHaveBeenCalledOnce();
     expect(stopsApi.addTagToStop).toHaveBeenCalledWith(TRIP_ID, mockStop.id, { name: 'wildlife' });
+  });
+
+  it('calls removeTagFromStop for tags removed in the edit form', async () => {
+    const stopWithTags = {
+      ...mockStop,
+      tags: [
+        { id: '00000000-0000-4000-8000-000000000010', name: 'Mountain', slug: 'mountain', created_at: '2025-06-01T00:00:00Z' },
+        { id: '00000000-0000-4000-8000-000000000011', name: 'National Park', slug: 'national-park', created_at: '2025-06-01T00:00:00Z' },
+      ],
+    };
+    vi.spyOn(stopQueries, 'useStops').mockReturnValue({
+      data: { data: [stopWithTags], pagination: { page: 1, limit: 20, total: 1 } },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof stopQueries.useStops>);
+    vi.spyOn(stopsApi, 'updateStop').mockResolvedValue(stopWithTags);
+    vi.spyOn(stopsApi, 'addTagToStop').mockResolvedValue();
+    vi.spyOn(stopsApi, 'removeTagFromStop').mockResolvedValue();
+
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /edit yellowstone camp/i }));
+    await waitFor(() => {
+      expect(screen.getByLabelText(/stop name/i)).toHaveValue('Yellowstone Camp');
+    });
+
+    // Both tags are pre-filled as pills — remove Mountain
+    await userEvent.click(screen.getByRole('button', { name: /remove mountain/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(stopsApi.updateStop).toHaveBeenCalledOnce());
+    // Mountain was removed — its slug should be deleted
+    expect(stopsApi.removeTagFromStop).toHaveBeenCalledOnce();
+    expect(stopsApi.removeTagFromStop).toHaveBeenCalledWith(TRIP_ID, mockStop.id, 'mountain');
+    // National Park was kept — it should not be re-added or removed
+    expect(stopsApi.addTagToStop).not.toHaveBeenCalled();
   });
 });

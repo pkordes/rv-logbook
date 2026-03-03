@@ -91,3 +91,47 @@ func tagToResponse(t domain.Tag) gen.Tag {
 		CreatedAt: t.CreatedAt,
 	}
 }
+
+// PatchTag handles PATCH /tags/{slug}.
+// Updates the display name of a tag. The slug is the stable identifier and is
+// never changed — only the name displayed to the user changes.
+func (s *Server) PatchTag(ctx context.Context, req gen.PatchTagRequestObject) (gen.PatchTagResponseObject, error) {
+	tag, err := s.tags.UpdateName(ctx, req.Slug, req.Body.Name)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return gen.PatchTag404JSONResponse(notFoundBody("tag not found")), nil
+		}
+		if errors.Is(err, domain.ErrValidation) {
+			return gen.PatchTag422JSONResponse(validationBody(err)), nil
+		}
+		return nil, err
+	}
+	return gen.PatchTag200JSONResponse(tagToResponse(tag)), nil
+}
+
+// DeleteTag handles DELETE /tags/{slug}.
+// Permanently removes a tag and unlinks it from all stops via CASCADE.
+func (s *Server) DeleteTag(ctx context.Context, req gen.DeleteTagRequestObject) (gen.DeleteTagResponseObject, error) {
+	err := s.tags.Delete(ctx, req.Slug)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return gen.DeleteTag404JSONResponse(notFoundBody("tag not found")), nil
+		}
+		return nil, err
+	}
+	return gen.DeleteTag204Response{}, nil
+}
+
+// CreateTag handles POST /tags.
+// Upserts a tag by name — normalises to a slug and returns the existing tag
+// if the slug already exists. Returns 201 in both cases.
+func (s *Server) CreateTag(ctx context.Context, req gen.CreateTagRequestObject) (gen.CreateTagResponseObject, error) {
+	tag, err := s.tags.UpsertByName(ctx, req.Body.Name)
+	if err != nil {
+		if errors.Is(err, domain.ErrValidation) {
+			return gen.CreateTag422JSONResponse(validationBody(err)), nil
+		}
+		return nil, err
+	}
+	return gen.CreateTag201JSONResponse(tagToResponse(tag)), nil
+}

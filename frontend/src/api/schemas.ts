@@ -35,6 +35,31 @@ export const PaginationSchema = z.object({
 })
 
 // ---------------------------------------------------------------------------
+// Tag
+// ---------------------------------------------------------------------------
+
+export const TagSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  slug: z.string(),
+  created_at: z.string(),
+})
+
+/** Tag as returned by the API — type is derived from the Zod schema. */
+export type Tag = z.infer<typeof TagSchema>
+
+export const TagListSchema = z.object({
+  data: z.array(TagSchema),
+  pagination: PaginationSchema,
+})
+
+export type TagListResponse = z.infer<typeof TagListSchema>
+
+type _TagCompatCheck = Tag extends components['schemas']['Tag'] ? true : false
+const _tagIsCompatible: _TagCompatCheck = true
+void _tagIsCompatible
+
+// ---------------------------------------------------------------------------
 // Trip
 // ---------------------------------------------------------------------------
 
@@ -90,6 +115,10 @@ export const StopSchema = z.object({
   notes: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
+  // Tags are always present on responses from list/get endpoints.
+  // The backend repo guarantees a non-nil slice; the spec declares it optional
+  // for write-operation responses (create/update) that don't join tags.
+  tags: z.array(TagSchema).optional().default([]),
 })
 
 /** Stop as returned by the API — type is derived from the Zod schema. */
