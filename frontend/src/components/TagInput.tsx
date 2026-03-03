@@ -72,7 +72,16 @@ export function TagInput({ value, onChange }: TagInputProps) {
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
+      // preventDefault stops the browser from submitting the containing form.
+      // stopPropagation prevents the event reaching parent keydown handlers —
+      // needed because React 17+ delegates events at the root, which can allow
+      // the browser's "Enter submits form" behaviour to fire first.
       e.preventDefault()
+      e.stopPropagation()
+      addTag(inputValue)
+    } else if (e.key === 'Tab' && inputValue.trim() !== '') {
+      // Commit the typed text as a tag and let Tab move focus normally.
+      // Do NOT call preventDefault so the browser still advances focus.
       addTag(inputValue)
     } else if (e.key === 'Backspace' && inputValue === '') {
       if (value.length > 0) {
