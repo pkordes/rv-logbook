@@ -75,3 +75,34 @@ type _TripCompatCheck = Trip extends components['schemas']['Trip'] ? true : fals
 // If this line errors, the TripSchema is missing a required field from the spec.
 const _tripIsCompatible: _TripCompatCheck = true
 void _tripIsCompatible
+
+// ---------------------------------------------------------------------------
+// Stop
+// ---------------------------------------------------------------------------
+
+export const StopSchema = z.object({
+  id: z.string().uuid(),
+  trip_id: z.string().uuid(),
+  name: z.string(),
+  location: z.string().nullable().optional(),
+  arrived_at: z.string(),
+  departed_at: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+/** Stop as returned by the API — type is derived from the Zod schema. */
+export type Stop = z.infer<typeof StopSchema>
+
+export const StopListSchema = z.object({
+  data: z.array(StopSchema),
+  pagination: PaginationSchema,
+})
+
+export type StopListResponse = z.infer<typeof StopListSchema>
+
+type _StopCompatCheck = Stop extends components['schemas']['Stop'] ? true : false
+// If this line errors, the StopSchema is missing a required field from the spec.
+const _stopIsCompatible: _StopCompatCheck = true
+void _stopIsCompatible

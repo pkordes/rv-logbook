@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { Trip } from '../../api/schemas';
 
 /** Props for {@link TripList}. */
@@ -29,7 +30,12 @@ export function TripList({ trips, onDelete }: TripListProps) {
       {trips.map((trip) => (
         <li key={trip.id} className="flex items-center justify-between py-3">
           <div>
-            <span className="font-medium text-gray-900">{trip.name}</span>
+            <Link
+              to={`/trips/${trip.id}`}
+              className="font-medium text-gray-900 hover:text-blue-600"
+            >
+              {trip.name}
+            </Link>
             <span className="ml-3 text-sm text-gray-500">{trip.start_date}</span>
           </div>
           <button
