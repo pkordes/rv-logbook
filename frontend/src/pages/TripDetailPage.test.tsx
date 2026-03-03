@@ -6,6 +6,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { TripDetailPage } from './TripDetailPage';
 import * as tripQueries from '../features/trips/useTripQueries';
 import * as stopQueries from '../features/stops/useStopQueries';
+import * as stopsApi from '../api/stops';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -61,6 +62,7 @@ const mockStopList = {
 
 describe('TripDetailPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.spyOn(tripQueries, 'useTrip').mockReturnValue({
       data: mockTrip,
       isLoading: false,
@@ -152,5 +154,62 @@ describe('TripDetailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
     expect(screen.getByRole('button', { name: /add stop/i })).toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // API orchestration regression tests
+  //
+  // These were added after a bug was found via manual testing where addTagToStop
+  // was never called on the edit path. Spying on the raw API functions (not just
+  // the query hooks) is the right level for testing page-level orchestration.
+  // ---------------------------------------------------------------------------
+
+  it('calls createStop then addTagToStop for each tag when the add form is submitted', async () => {
+    const createdStop = { ...mockStop, id: '00000000-0000-4000-8000-000000000099' };
+    vi.spyOn(stopsApi, 'createStop').mockResolvedValue(createdStop);
+    vi.spyOn(stopsApi, 'addTagToStop').mockResolvedValue();
+
+    renderPage();
+    await userEvent.type(screen.getByLabelText(/stop name/i), 'Firehole Camp');
+    await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-07-01');
+    await userEvent.type(screen.getByLabelText(/tags/i), 'camping, hiking');
+    await userEvent.click(screen.getByRole('button', { name: /add stop/i }));
+
+    await waitFor(() => expect(stopsApi.createStop).toHaveBeenCalledOnce());
+    expect(stopsApi.createStop).toHaveBeenCalledWith(
+      TRIP_ID,
+      expect.objectContaining({ name: 'Firehole Camp', arrived_at: '2025-07-01T00:00:00Z' }),
+    );
+    expect(stopsApi.addTagToStop).toHaveBeenCalledTimes(2);
+    expect(stopsApi.addTagToStop).toHaveBeenCalledWith(TRIP_ID, createdStop.id, { name: 'camping' });
+    expect(stopsApi.addTagToStop).toHaveBeenCalledWith(TRIP_ID, createdStop.id, { name: 'hiking' });
+  });
+
+  it('calls updateStop then addTagToStop for each tag when the edit form is submitted', async () => {
+    vi.spyOn(stopQueries, 'useStops').mockReturnValue({
+      data: { data: [mockStop], pagination: { page: 1, limit: 20, total: 1 } },
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof stopQueries.useStops>);
+    vi.spyOn(stopsApi, 'updateStop').mockResolvedValue(mockStop);
+    vi.spyOn(stopsApi, 'addTagToStop').mockResolvedValue();
+
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /edit yellowstone camp/i }));
+    await waitFor(() => {
+      expect(screen.getByLabelText(/stop name/i)).toHaveValue('Yellowstone Camp');
+    });
+
+    await userEvent.type(screen.getByLabelText(/tags/i), 'wildlife');
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(stopsApi.updateStop).toHaveBeenCalledOnce());
+    expect(stopsApi.updateStop).toHaveBeenCalledWith(
+      TRIP_ID,
+      mockStop.id,
+      expect.objectContaining({ name: 'Yellowstone Camp', arrived_at: '2025-06-02T00:00:00Z' }),
+    );
+    expect(stopsApi.addTagToStop).toHaveBeenCalledOnce();
+    expect(stopsApi.addTagToStop).toHaveBeenCalledWith(TRIP_ID, mockStop.id, { name: 'wildlife' });
   });
 });
