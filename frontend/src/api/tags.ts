@@ -43,3 +43,15 @@ export function patchTag(slug: string, name: string): Promise<Tag> {
     body: JSON.stringify({ name }),
   }).then((raw) => TagSchema.parse(raw))
 }
+
+/**
+ * Permanently delete a tag by slug.
+ *
+ * The server removes all stop_tags join rows via CASCADE, so no orphan data
+ * is left behind. Resolves to `undefined` on success (HTTP 204 No Content).
+ */
+export function deleteTag(slug: string): Promise<void> {
+  return apiFetch<void>(`/tags/${encodeURIComponent(slug)}`, {
+    method: 'DELETE',
+  })
+}
