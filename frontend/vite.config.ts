@@ -22,6 +22,9 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+        // The backend has no /api prefix — strip it before forwarding.
+        // /api/trips → http://localhost:8080/trips
+        rewrite: (path: string) => path.replace(/^\/api/, ''),
       },
     },
   },
