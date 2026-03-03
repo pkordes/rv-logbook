@@ -129,6 +129,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: DeleteTag
+      summary: Delete a tag
+      description: Permanently deletes a tag and removes it from all stops. This action cannot be undone.
+      tags:
+        - tags
+      responses:
+        "204":
+          description: Tag deleted successfully.
+        "404":
+          description: Tag not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /trips:
     post:

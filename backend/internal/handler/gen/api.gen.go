@@ -248,6 +248,9 @@ type ServerInterface interface {
 	// List tags, optionally filtered by name prefix
 	// (GET /tags)
 	ListTags(w http.ResponseWriter, r *http.Request, params ListTagsParams)
+	// Delete a tag
+	// (DELETE /tags/{slug})
+	DeleteTag(w http.ResponseWriter, r *http.Request, slug string)
 	// Update a tag's display name
 	// (PATCH /tags/{slug})
 	PatchTag(w http.ResponseWriter, r *http.Request, slug string)
@@ -311,6 +314,12 @@ func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
 // List tags, optionally filtered by name prefix
 // (GET /tags)
 func (_ Unimplemented) ListTags(w http.ResponseWriter, r *http.Request, params ListTagsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a tag
+// (DELETE /tags/{slug})
+func (_ Unimplemented) DeleteTag(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -482,6 +491,31 @@ func (siw *ServerInterfaceWrapper) ListTags(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListTags(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTag operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTag(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTag(w, r, slug)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1045,6 +1079,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/tags", wrapper.ListTags)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/tags/{slug}", wrapper.DeleteTag)
+	})
+	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/tags/{slug}", wrapper.PatchTag)
 	})
 	r.Group(func(r chi.Router) {
@@ -1155,6 +1192,31 @@ type ListTags200JSONResponse TagList
 func (response ListTags200JSONResponse) VisitListTagsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTagRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type DeleteTagResponseObject interface {
+	VisitDeleteTagResponse(w http.ResponseWriter) error
+}
+
+type DeleteTag204Response struct {
+}
+
+func (response DeleteTag204Response) VisitDeleteTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTag404JSONResponse ErrorResponse
+
+func (response DeleteTag404JSONResponse) VisitDeleteTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -1580,6 +1642,9 @@ type StrictServerInterface interface {
 	// List tags, optionally filtered by name prefix
 	// (GET /tags)
 	ListTags(ctx context.Context, request ListTagsRequestObject) (ListTagsResponseObject, error)
+	// Delete a tag
+	// (DELETE /tags/{slug})
+	DeleteTag(ctx context.Context, request DeleteTagRequestObject) (DeleteTagResponseObject, error)
 	// Update a tag's display name
 	// (PATCH /tags/{slug})
 	PatchTag(ctx context.Context, request PatchTagRequestObject) (PatchTagResponseObject, error)
@@ -1722,6 +1787,32 @@ func (sh *strictHandler) ListTags(w http.ResponseWriter, r *http.Request, params
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListTagsResponseObject); ok {
 		if err := validResponse.VisitListTagsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteTag operation middleware
+func (sh *strictHandler) DeleteTag(w http.ResponseWriter, r *http.Request, slug string) {
+	var request DeleteTagRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTag(ctx, request.(DeleteTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteTagResponseObject); ok {
+		if err := validResponse.VisitDeleteTagResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
