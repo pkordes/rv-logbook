@@ -41,6 +41,7 @@ const validTagList = {
 
 const deleteMutate = vi.fn()
 const updateMutate = vi.fn()
+const createMutate = vi.fn()
 
 function mockHooks() {
   vi.spyOn(tagQueries, 'useTags').mockReturnValue({
@@ -151,7 +152,7 @@ describe('TagsPage', () => {
 
     await user.click(screen.getByRole('button', { name: /edit/i }))
 
-    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /rename tag/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
   })
@@ -162,7 +163,7 @@ describe('TagsPage', () => {
 
     await user.click(screen.getByRole('button', { name: /edit/i }))
 
-    const input = screen.getByRole('textbox')
+    const input = screen.getByRole('textbox', { name: /rename tag/i })
     await user.clear(input)
     await user.type(input, 'Yellowstone NP')
     await user.click(screen.getByRole('button', { name: /save/i }))
@@ -177,9 +178,38 @@ describe('TagsPage', () => {
     renderPage()
 
     await user.click(screen.getByRole('button', { name: /edit/i }))
-    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /rename tag/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /cancel/i }))
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /rename tag/i })).not.toBeInTheDocument()
+  })
+
+  it('renders the new tag name input', () => {
+    renderPage()
+    expect(screen.getByRole('textbox', { name: /new tag name/i })).toBeInTheDocument()
+  })
+
+  it('calls createTag mutation when the new-tag form is submitted', async () => {
+    const user = userEvent.setup()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.spyOn(tagQueries, 'useCreateTag').mockReturnValue({ mutate: createMutate, isPending: false, isError: false } as any)
+    renderPage()
+
+    await user.type(screen.getByRole('textbox', { name: /new tag name/i }), 'Waterfall')
+    await user.click(screen.getByRole('button', { name: /add tag/i }))
+
+    expect(createMutate).toHaveBeenCalledWith('Waterfall')
+  })
+
+  it('clears the new-tag input after submission', async () => {
+    const user = userEvent.setup()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.spyOn(tagQueries, 'useCreateTag').mockReturnValue({ mutate: createMutate, isPending: false, isError: false } as any)
+    renderPage()
+
+    await user.type(screen.getByRole('textbox', { name: /new tag name/i }), 'Waterfall')
+    await user.click(screen.getByRole('button', { name: /add tag/i }))
+
+    expect(screen.getByRole('textbox', { name: /new tag name/i })).toHaveValue('')
   })
 })

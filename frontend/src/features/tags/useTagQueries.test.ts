@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { createElement, type ReactNode } from 'react'
-import { useTags, useUpdateTag, useDeleteTag, tagKeys } from './useTagQueries'
+import { useTags, useUpdateTag, useDeleteTag, useCreateTag, tagKeys } from './useTagQueries'
 import * as tagsApi from '../../api/tags'
 import type { TagListResponse } from '../../api/tags'
 
@@ -139,5 +139,26 @@ describe('useDeleteTag', () => {
     // If we only invalidate ['tags', 'list'], the stops key stays clean.
     // This test fails until we also invalidate ['trips'] in onSuccess.
     expect(queryClient.getQueryState(stopsKey)?.isInvalidated).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useCreateTag
+// ---------------------------------------------------------------------------
+
+describe('useCreateTag', () => {
+  it('calls createTag and invalidates the tag list', async () => {
+    vi.spyOn(tagsApi, 'createTag').mockResolvedValue(validTag)
+    vi.spyOn(tagsApi, 'listAllTags').mockResolvedValue(validTagList)
+
+    const wrapper = makeWrapper()
+    const { result } = renderHook(() => useCreateTag(), { wrapper })
+
+    act(() => {
+      result.current.mutate('National Park')
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(tagsApi.createTag).toHaveBeenCalledWith('National Park')
   })
 })

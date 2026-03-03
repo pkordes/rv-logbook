@@ -108,6 +108,7 @@ export function TagsPage() {
                   {editingSlug === tag.slug ? (
                     <input
                       type="text"
+                      aria-label="Rename tag"
                       value={draftName}
                       onChange={(e) => setDraftName(e.target.value)}
                       className="border border-gray-300 rounded px-2 py-1 text-sm w-full"

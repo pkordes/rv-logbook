@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { searchTags, listAllTags, patchTag, deleteTag } from './tags'
+import { searchTags, listAllTags, patchTag, deleteTag, createTag } from './tags'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -170,5 +170,37 @@ describe('deleteTag', () => {
     const result = await deleteTag('yellowstone')
 
     expect(result).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// createTag
+// ---------------------------------------------------------------------------
+
+describe('createTag', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('calls POST /api/tags with the tag name', async () => {
+    const fetchSpy = mockFetch(201, validTag)
+    vi.stubGlobal('fetch', fetchSpy)
+
+    await createTag('National Park')
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/tags',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ name: 'National Park' }),
+      }),
+    )
+  })
+
+  it('returns the created Tag', async () => {
+    vi.stubGlobal('fetch', mockFetch(201, validTag))
+
+    const result = await createTag('Yellowstone')
+
+    expect(result.name).toBe('Yellowstone')
+    expect(result.slug).toBe('yellowstone')
   })
 })
