@@ -5,8 +5,8 @@ import { LoadingSpinner } from '../components/LoadingSpinner'
 import { StopList } from '../features/stops/StopList'
 import { StopForm, type StopFormValues } from '../features/stops/StopForm'
 import { useTrip } from '../features/trips/useTripQueries'
-import { useStops, useDeleteStop, useUpdateStop, stopKeys } from '../features/stops/useStopQueries'
-import { createStop, addTagToStop } from '../api/stops'
+import { useStops, useDeleteStop, stopKeys } from '../features/stops/useStopQueries'
+import { createStop, updateStop, addTagToStop } from '../api/stops'
 import type { Stop } from '../api/stops'
 import { ApiError } from '../api/client'
 
@@ -21,7 +21,12 @@ import { ApiError } from '../api/client'
  *   1. POST /trips/:id/stops  → get the new stop's ID
  *   2. For each tagName: POST /trips/:id/stops/:stopId/tags
  *   3. Invalidate the stop list so the UI refreshes
- * We manage this with useState + direct API calls rather than a useMutation
+ * The edit-stop flow is the same shape:
+ *   1. PUT /trips/:id/stops/:stopId  → update core fields
+ *   2. For each tagName typed in the edit form: POST .../tags  (additive only,
+ *      existing tags are not removed — full tag management is Phase 12)
+ *   3. Invalidate the stop list so the UI refreshes
+ * We manage both with direct API calls + useState rather than a useMutation
  * chain, which keeps the async logic explicit and easy to follow.
  */
 export function TripDetailPage() {
@@ -31,11 +36,12 @@ export function TripDetailPage() {
   const trip = useTrip(tripId)
   const stops = useStops(tripId)
   const deleteStop = useDeleteStop(tripId)
-  const updateStop = useUpdateStop(tripId)
 
   const [isAdding, setIsAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
   const [editingStop, setEditingStop] = useState<Stop | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
 
   async function handleAddStop(values: StopFormValues) {
     setIsAdding(true)
@@ -61,12 +67,32 @@ export function TripDetailPage() {
     }
   }
 
-  function handleEditStop(values: StopFormValues) {
+  async function handleEditStop(values: StopFormValues) {
     if (!editingStop) return
-    updateStop.mutate(
-      { stopId: editingStop.id, input: values },
-      { onSuccess: () => setEditingStop(null) },
-    )
+    setIsEditing(true)
+    setEditError(null)
+    try {
+      await updateStop(tripId, editingStop.id, values)
+      // Tags in the edit form are additive: existing tags are not removed.
+      // Full tag management (remove, replace) is Phase 12 work.
+      for (const name of values.tagNames) {
+        await addTagToStop(tripId, editingStop.id, { name })
+      }
+      await queryClient.invalidateQueries({ queryKey: stopKeys.list(tripId) })
+      setEditingStop(null)
+    } catch (e) {
+      if (e instanceof ApiError) {
+        if (e.status >= 400 && e.status < 500) {
+          setEditError('Could not save changes. Please check your entries and try again.')
+        } else {
+          setEditError('Server error. Please try again in a moment.')
+        }
+      } else {
+        setEditError('Could not reach the server. Is the backend running?')
+      }
+    } finally {
+      setIsEditing(false)
+    }
   }
 
   // ── Trip loading states ──────────────────────────────────────────────────
@@ -117,6 +143,12 @@ export function TripDetailPage() {
         </p>
       )}
 
+      {editError && (
+        <p className="mb-3 text-sm text-red-600">
+          Failed to save changes: {editError}
+        </p>
+      )}
+
       {stops.isLoading && <LoadingSpinner label="Loading stops..." />}
       {stops.isError && (
         <p className="text-red-600 py-2">Failed to load stops.</p>
@@ -135,7 +167,7 @@ export function TripDetailPage() {
           <StopForm
             key={editingStop.id}
             onSubmit={handleEditStop}
-            isSubmitting={updateStop.isPending}
+            isSubmitting={isEditing}
             initialValues={editingStop}
             onCancel={() => setEditingStop(null)}
           />
