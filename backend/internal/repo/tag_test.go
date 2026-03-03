@@ -234,3 +234,29 @@ func TestTagRepo_UpdateName_NotFound(t *testing.T) {
 
 	assert.ErrorIs(t, err, domain.ErrNotFound)
 }
+
+// ---- Delete ----------------------------------------------------------------
+
+func TestTagRepo_Delete_OK(t *testing.T) {
+	_, _, tagRepo := newTestTagRepos(t)
+	ctx := context.Background()
+
+	tag, err := tagRepo.Upsert(ctx, "Camping", "camping")
+	require.NoError(t, err)
+
+	err = tagRepo.Delete(ctx, tag.Slug)
+
+	require.NoError(t, err)
+	// Confirm it is gone.
+	tags, err := tagRepo.List(ctx, "camping")
+	require.NoError(t, err)
+	assert.Empty(t, tags, "tag must not exist after deletion")
+}
+
+func TestTagRepo_Delete_NotFound(t *testing.T) {
+	_, _, tagRepo := newTestTagRepos(t)
+
+	err := tagRepo.Delete(context.Background(), "nonexistent-slug")
+
+	assert.ErrorIs(t, err, domain.ErrNotFound)
+}

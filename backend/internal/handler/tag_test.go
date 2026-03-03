@@ -25,6 +25,7 @@ type mockTagServicer struct {
 	list       func(ctx context.Context, prefix string) ([]domain.Tag, error)
 	listPaged  func(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
 	updateName func(ctx context.Context, slug, name string) (domain.Tag, error)
+	deleteTag  func(ctx context.Context, slug string) error
 }
 
 func (m *mockTagServicer) List(ctx context.Context, prefix string) ([]domain.Tag, error) {
@@ -38,6 +39,12 @@ func (m *mockTagServicer) UpdateName(ctx context.Context, slug, name string) (do
 		return m.updateName(ctx, slug, name)
 	}
 	return domain.Tag{}, nil
+}
+func (m *mockTagServicer) Delete(ctx context.Context, slug string) error {
+	if m.deleteTag != nil {
+		return m.deleteTag(ctx, slug)
+	}
+	return nil
 }
 
 // compile-time check: mockTagServicer must satisfy handler.TagServicer.
@@ -296,4 +303,33 @@ func TestPatchTag_422_EmptyName(t *testing.T) {
 	var errResp gen.ErrorResponse
 	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
 	assert.Equal(t, "validation_error", errResp.Error.Code)
+}
+
+// ---- DeleteTag -------------------------------------------------------------
+
+func TestDeleteTag_204(t *testing.T) {
+	svc := &mockTagServicer{}
+
+	req := httptest.NewRequest(http.MethodDelete, "/tags/national-park", nil)
+	rec := httptest.NewRecorder()
+	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNoContent, rec.Code)
+}
+
+func TestDeleteTag_404(t *testing.T) {
+	svc := &mockTagServicer{
+		deleteTag: func(_ context.Context, _ string) error {
+			return domain.ErrNotFound
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/tags/no-such-slug", nil)
+	rec := httptest.NewRecorder()
+	newTagHTTPHandler(svc, nil).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNotFound, rec.Code)
+	var errResp gen.ErrorResponse
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&errResp))
+	assert.Equal(t, "not_found", errResp.Error.Code)
 }

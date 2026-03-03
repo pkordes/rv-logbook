@@ -23,6 +23,7 @@ type mockTagRepo struct {
 	removeFromStop func(ctx context.Context, stopID uuid.UUID, slug string) error
 	listByStop     func(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
 	updateName     func(ctx context.Context, slug, name string) (domain.Tag, error)
+	delete         func(ctx context.Context, slug string) error
 }
 
 func (m *mockTagRepo) Upsert(ctx context.Context, name, slug string) (domain.Tag, error) {
@@ -51,6 +52,12 @@ func (m *mockTagRepo) UpdateName(ctx context.Context, slug, name string) (domain
 		return m.updateName(ctx, slug, name)
 	}
 	return domain.Tag{}, nil
+}
+func (m *mockTagRepo) Delete(ctx context.Context, slug string) error {
+	if m.delete != nil {
+		return m.delete(ctx, slug)
+	}
+	return nil
 }
 
 // compile-time check
@@ -202,6 +209,35 @@ func TestTagService_UpdateName_NotFound(t *testing.T) {
 	})
 
 	_, err := svc.UpdateName(context.Background(), "no-such-slug", "Valid Name")
+
+	assert.ErrorIs(t, err, domain.ErrNotFound)
+}
+
+// ---- Delete ----------------------------------------------------------------
+
+func TestTagService_Delete_OK(t *testing.T) {
+	var calledSlug string
+	svc := service.NewTagService(&mockTagRepo{
+		delete: func(_ context.Context, slug string) error {
+			calledSlug = slug
+			return nil
+		},
+	})
+
+	err := svc.Delete(context.Background(), "national-park")
+
+	require.NoError(t, err)
+	assert.Equal(t, "national-park", calledSlug)
+}
+
+func TestTagService_Delete_NotFound(t *testing.T) {
+	svc := service.NewTagService(&mockTagRepo{
+		delete: func(_ context.Context, _ string) error {
+			return domain.ErrNotFound
+		},
+	})
+
+	err := svc.Delete(context.Background(), "no-such-slug")
 
 	assert.ErrorIs(t, err, domain.ErrNotFound)
 }
