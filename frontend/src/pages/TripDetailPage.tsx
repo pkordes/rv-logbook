@@ -7,6 +7,7 @@ import { StopForm, type StopFormValues } from '../features/stops/StopForm'
 import { useTrip } from '../features/trips/useTripQueries'
 import { useStops, useDeleteStop, stopKeys } from '../features/stops/useStopQueries'
 import { createStop, addTagToStop } from '../api/stops'
+import { ApiError } from '../api/client'
 
 /**
  * TripDetailPage owns the /trips/:id route.
@@ -43,7 +44,15 @@ export function TripDetailPage() {
       }
       await queryClient.invalidateQueries({ queryKey: stopKeys.list(tripId) })
     } catch (e) {
-      setAddError(e instanceof Error ? e.message : 'Failed to add stop')
+      if (e instanceof ApiError) {
+        if (e.status >= 400 && e.status < 500) {
+          setAddError('Could not save stop. Please check your entries and try again.')
+        } else {
+          setAddError('Server error. Please try again in a moment.')
+        }
+      } else {
+        setAddError('Could not reach the server. Is the backend running?')
+      }
     } finally {
       setIsAdding(false)
     }

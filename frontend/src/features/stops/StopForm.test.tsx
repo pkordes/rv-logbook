@@ -23,6 +23,16 @@ describe('StopForm', () => {
     expect(await screen.findByText(/arrived at is required/i)).toBeInTheDocument();
   });
 
+  it('shows a validation error when arrived_at is not in YYYY-MM-DD format', async () => {
+    // This is the regression test for the Bad Request bug: the form must reject
+    // invalid dates itself so garbage never reaches the API.
+    render(<StopForm onSubmit={vi.fn()} isSubmitting={false} />);
+    await userEvent.type(screen.getByLabelText(/stop name/i), 'Yellowstone Camp');
+    await userEvent.type(screen.getByLabelText(/arrived at/i), '06/02/2025'); // wrong format
+    await userEvent.click(screen.getByRole('button', { name: /add stop/i }));
+    expect(await screen.findByText(/yyyy-mm-dd/i)).toBeInTheDocument();
+  });
+
   it('calls onSubmit with trimmed values when form is valid', async () => {
     const onSubmit = vi.fn();
     render(<StopForm onSubmit={onSubmit} isSubmitting={false} />);
