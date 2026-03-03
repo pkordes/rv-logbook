@@ -263,7 +263,7 @@ func TestPatchTag_200(t *testing.T) {
 		},
 	}
 
-	body := fmt.Sprintf(`{"name":"National Park"}`)
+	body := `{"name":"National Park"}`
 	req := httptest.NewRequest(http.MethodPatch, "/tags/"+tag.Slug, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
