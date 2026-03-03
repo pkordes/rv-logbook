@@ -28,14 +28,14 @@ describe('StopForm', () => {
     render(<StopForm onSubmit={onSubmit} isSubmitting={false} />);
 
     await userEvent.type(screen.getByLabelText(/stop name/i), '  Yellowstone Camp  ');
-    await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-06-02T10:00');
+    await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-06-02');
     await userEvent.click(screen.getByRole('button', { name: /add stop/i }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Yellowstone Camp',
-        arrived_at: '2025-06-02T10:00',
+        arrived_at: '2025-06-02T00:00:00Z',
       }),
     );
   });
@@ -45,7 +45,7 @@ describe('StopForm', () => {
     render(<StopForm onSubmit={onSubmit} isSubmitting={false} />);
 
     await userEvent.type(screen.getByLabelText(/stop name/i), 'Test Stop');
-    await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-06-01T08:00');
+    await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-06-01');
     await userEvent.type(screen.getByLabelText(/tags/i), 'camping, national park , hiking');
     await userEvent.click(screen.getByRole('button', { name: /add stop/i }));
 
@@ -62,7 +62,7 @@ describe('StopForm', () => {
     render(<StopForm onSubmit={onSubmit} isSubmitting={false} />);
 
     await userEvent.type(screen.getByLabelText(/stop name/i), 'Plain Stop');
-    await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-06-01T08:00');
+    await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-06-01');
     await userEvent.click(screen.getByRole('button', { name: /add stop/i }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());

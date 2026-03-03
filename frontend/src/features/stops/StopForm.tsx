@@ -2,17 +2,29 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+/**
+ * Converts a YYYY-MM-DD date string to a midnight UTC RFC 3339 timestamp.
+ * The backend requires date-time format; for a logbook the day is what matters.
+ */
+const dateToRfc3339 = (val: string) => `${val}T00:00:00Z`
+
 /** Internal Zod schema — validates raw form field strings. */
 const stopFormSchema = z.object({
   name: z
     .string()
     .min(1, 'Name is required')
     .transform((s) => s.trim()),
-  arrived_at: z.string().min(1, 'Arrived at is required'),
+  arrived_at: z
+    .string()
+    .min(1, 'Arrived at is required')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .transform(dateToRfc3339),
   departed_at: z
     .string()
-    .or(z.literal('').transform(() => undefined))
-    .optional(),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .transform(dateToRfc3339)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   location: z
     .string()
     .or(z.literal('').transform(() => undefined))
@@ -104,7 +116,7 @@ export function StopForm({ onSubmit, isSubmitting }: StopFormProps) {
           type="text"
           {...register('arrived_at')}
           className="mt-1 block w-full rounded border-gray-300 shadow-sm"
-          placeholder="e.g. 2025-06-02T10:00"
+          placeholder="e.g. 2025-06-02"
         />
         {errors.arrived_at && (
           <p className="mt-1 text-sm text-red-600">{errors.arrived_at.message}</p>
@@ -121,7 +133,7 @@ export function StopForm({ onSubmit, isSubmitting }: StopFormProps) {
           type="text"
           {...register('departed_at')}
           className="mt-1 block w-full rounded border-gray-300 shadow-sm"
-          placeholder="e.g. 2025-06-04T09:00 (optional)"
+          placeholder="e.g. 2025-06-04 (optional)"
         />
       </div>
 
