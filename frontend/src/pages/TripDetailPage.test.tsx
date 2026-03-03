@@ -67,13 +67,13 @@ describe('TripDetailPage', () => {
       data: mockTrip,
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof tripQueries.useTrip>);
+    } as unknown as ReturnType<typeof tripQueries.useTrip>);
 
     vi.spyOn(stopQueries, 'useStops').mockReturnValue({
       data: mockStopList,
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof stopQueries.useStops>);
+    } as unknown as ReturnType<typeof stopQueries.useStops>);
 
     vi.spyOn(stopQueries, 'useDeleteStop').mockReturnValue({
       mutate: vi.fn(),
@@ -109,7 +109,7 @@ describe('TripDetailPage', () => {
       data: undefined,
       isLoading: true,
       isError: false,
-    } as ReturnType<typeof tripQueries.useTrip>);
+    } as unknown as ReturnType<typeof tripQueries.useTrip>);
 
     renderPage();
     expect(screen.getByRole('status')).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe('TripDetailPage', () => {
       data: undefined,
       isLoading: false,
       isError: true,
-    } as ReturnType<typeof tripQueries.useTrip>);
+    } as unknown as ReturnType<typeof tripQueries.useTrip>);
 
     renderPage();
     expect(screen.getByText(/failed to load trip/i)).toBeInTheDocument();
@@ -131,7 +131,7 @@ describe('TripDetailPage', () => {
       data: { data: [mockStop], pagination: { page: 1, limit: 20, total: 1 } },
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof stopQueries.useStops>);
+    } as unknown as ReturnType<typeof stopQueries.useStops>);
 
     renderPage();
     await userEvent.click(screen.getByRole('button', { name: /edit yellowstone camp/i }));
@@ -147,7 +147,7 @@ describe('TripDetailPage', () => {
       data: { data: [mockStop], pagination: { page: 1, limit: 20, total: 1 } },
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof stopQueries.useStops>);
+    } as unknown as ReturnType<typeof stopQueries.useStops>);
 
     renderPage();
     await userEvent.click(screen.getByRole('button', { name: /edit yellowstone camp/i }));
@@ -190,7 +190,7 @@ describe('TripDetailPage', () => {
       data: { data: [mockStop], pagination: { page: 1, limit: 20, total: 1 } },
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof stopQueries.useStops>);
+    } as unknown as ReturnType<typeof stopQueries.useStops>);
     vi.spyOn(stopsApi, 'updateStop').mockResolvedValue(mockStop);
     vi.spyOn(stopsApi, 'addTagToStop').mockResolvedValue();
 
