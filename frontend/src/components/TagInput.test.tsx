@@ -194,4 +194,26 @@ describe('TagInput', () => {
 
     expect(onChange).not.toHaveBeenCalled()
   })
+
+  it('adds tag when Tab is pressed with non-empty input', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<TagInput value={[]} onChange={onChange} />)
+
+    await user.type(screen.getByRole('textbox'), 'Camping')
+    await user.tab()
+
+    expect(onChange).toHaveBeenCalledWith(['Camping'])
+  })
+
+  it('does not add tag when Tab is pressed with empty input', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<TagInput value={[]} onChange={onChange} />)
+
+    await user.click(screen.getByRole('textbox'))
+    await user.tab()
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
 })
