@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { listStops, createStop, deleteStop } from './stops'
+import { listStops, createStop, deleteStop, removeTagFromStop } from './stops'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -119,6 +119,24 @@ describe('deleteStop', () => {
 
     expect(fetchSpy).toHaveBeenCalledWith(
       `/api/trips/${TRIP_ID}/stops/${STOP_ID}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+})
+
+describe('removeTagFromStop', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('calls DELETE /api/trips/:tripId/stops/:stopId/tags/:slug', async () => {
+    const fetchSpy = mockNoContent()
+    vi.stubGlobal('fetch', fetchSpy)
+
+    await removeTagFromStop(TRIP_ID, STOP_ID, 'mountain')
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `/api/trips/${TRIP_ID}/stops/${STOP_ID}/tags/mountain`,
       expect.objectContaining({ method: 'DELETE' }),
     )
   })
