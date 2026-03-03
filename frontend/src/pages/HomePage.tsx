@@ -5,9 +5,9 @@
  */
 export function HomePage() {
   return (
-    <div>
-      <h1>RV Logbook</h1>
-      <p>Track your trips and stops.</p>
+    <div className="p-8">
+      <h1 className="text-3xl font-bold text-gray-900">RV Logbook</h1>
+      <p className="mt-2 text-gray-600">Track your trips and stops.</p>
     </div>
   )
 }
