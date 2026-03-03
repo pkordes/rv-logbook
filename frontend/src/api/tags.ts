@@ -55,3 +55,16 @@ export function deleteTag(slug: string): Promise<void> {
     method: 'DELETE',
   })
 }
+
+/**
+ * Create (or retrieve) a tag by display name.
+ *
+ * The backend normalises the name to a slug and upserts — if a tag with
+ * that slug already exists, it is returned unchanged (idempotent 201).
+ */
+export function createTag(name: string): Promise<Tag> {
+  return apiFetch<unknown>(`/tags`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  }).then((raw) => TagSchema.parse(raw))
+}

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { listAllTags, patchTag, deleteTag } from '../../api/tags'
+import { listAllTags, patchTag, deleteTag, createTag } from '../../api/tags'
 
 // ---------------------------------------------------------------------------
 // Query keys
@@ -48,6 +48,24 @@ export function useUpdateTag() {
   return useMutation({
     mutationFn: ({ slug, name }: { slug: string; name: string }) =>
       patchTag(slug, name),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: tagKeys.list() })
+    },
+  })
+}
+
+/**
+ * useCreateTag returns a mutation for creating a new tag by name.
+ *
+ * The backend normalises the name to a slug and upserts — safe to call
+ * with an existing name (returns the existing tag). The tag list is
+ * invalidated on success so the TagsPage refreshes automatically.
+ */
+export function useCreateTag() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (name: string) => createTag(name),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: tagKeys.list() })
     },

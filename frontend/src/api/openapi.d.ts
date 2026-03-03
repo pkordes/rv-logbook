@@ -59,7 +59,11 @@ export interface paths {
          */
         get: operations["ListTags"];
         put?: never;
-        post?: never;
+        /**
+         * Create a tag by name
+         * @description Upserts a tag — if a tag with the normalised slug already exists it is returned unchanged. Returns 201 in both cases.
+         */
+        post: operations["CreateTag"];
         delete?: never;
         options?: never;
         head?: never;
@@ -79,7 +83,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete a tag
+         * @description Permanently deletes a tag and removes it from all stops. This action cannot be undone.
+         */
+        delete: operations["DeleteTag"];
         options?: never;
         head?: never;
         /**
@@ -374,6 +382,13 @@ export interface components {
             /** @example National Park */
             name: string;
         };
+        CreateTagRequest: {
+            /**
+             * @description Display name for the tag. Will be normalised to a lowercase hyphenated slug.
+             * @example National Park
+             */
+            name: string;
+        };
         ExportRow: {
             /** Format: uuid */
             trip_id: string;
@@ -506,6 +521,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TagList"];
+                };
+            };
+        };
+    };
+    CreateTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTagRequest"];
+            };
+        };
+        responses: {
+            /** @description Tag created (or already existed — idempotent). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Validation error — name is empty or contains no usable characters. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    DeleteTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The slug of the tag to update. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tag deleted successfully. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tag not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

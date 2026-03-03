@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LoadingSpinner } from '../components/LoadingSpinner'
-import { useTags, useUpdateTag, useDeleteTag } from '../features/tags/useTagQueries'
+import { useTags, useUpdateTag, useDeleteTag, useCreateTag } from '../features/tags/useTagQueries'
 
 /**
  * TagsPage owns the /tags route.
@@ -19,6 +19,7 @@ export function TagsPage() {
   const { data, isLoading, isError } = useTags()
   const updateTag = useUpdateTag()
   const deleteTag = useDeleteTag()
+  const createTag = useCreateTag()
 
   // slug of the row currently being renamed, or null when no row is editing.
   const [editingSlug, setEditingSlug] = useState<string | null>(null)
@@ -26,6 +27,8 @@ export function TagsPage() {
   const [draftName, setDraftName] = useState('')
   // slug of the tag awaiting delete confirmation, or null.
   const [pendingDeleteSlug, setPendingDeleteSlug] = useState<string | null>(null)
+  // controlled value for the new-tag input in the create form.
+  const [newTagName, setNewTagName] = useState('')
 
   if (isLoading) {
     return <LoadingSpinner />
@@ -75,9 +78,36 @@ export function TagsPage() {
     setPendingDeleteSlug(null)
   }
 
+  function handleCreateTag(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = newTagName.trim()
+    if (!trimmed) return
+    createTag.mutate(trimmed)
+    setNewTagName('')
+  }
+
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">Tags</h1>
+
+      {/* New tag form */}
+      <form onSubmit={handleCreateTag} className="flex gap-2 mb-6">
+        <input
+          type="text"
+          aria-label="New tag name"
+          value={newTagName}
+          onChange={(e) => setNewTagName(e.target.value)}
+          placeholder="New tag name"
+          className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm shadow-sm"
+        />
+        <button
+          type="submit"
+          disabled={createTag.isPending || newTagName.trim() === ''}
+          className="rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          Add Tag
+        </button>
+      </form>
 
       {updateTag.isError && (
         <p className="mb-4 text-sm text-red-600">
