@@ -30,7 +30,7 @@ GOOSE        := goose
         backend/run backend/build backend/check backend/test backend/test/unit \
 		backend/test/service backend/test/handler \
 		backend/lint backend/generate \
-        frontend/dev frontend/build frontend/test frontend/lint \
+        frontend/dev frontend/build frontend/test frontend/lint frontend/generate \
         db/up db/down db/migrate db/rollback db/reset
 
 # ---------------------------------------------------------------------------
@@ -56,7 +56,8 @@ help: ## Show this help message
 	$(info     make frontend/dev       Start Vite dev server (http://localhost:5173))
 	$(info     make frontend/build     Build production bundle to frontend/dist/)
 	$(info     make frontend/test      Run Vitest unit tests)
-	$(info     make frontend/lint      Run ESLint)
+	$(info     make frontend/lint      Run ESLint + TypeScript type-check)
+	$(info     make frontend/generate  Regenerate TypeScript types from openapi.yaml)
 	$(info )
 	$(info   Database)
 	$(info     make db/up              Start the Postgres container (background))
@@ -142,6 +143,11 @@ frontend/test:
 frontend/lint:
 	npm --prefix $(FRONTEND_DIR) run lint
 	npm --prefix $(FRONTEND_DIR) run typecheck
+
+## Regenerate TypeScript types from backend/spec/openapi.yaml.
+## Run this whenever the OpenAPI spec changes.
+frontend/generate:
+	npm --prefix $(FRONTEND_DIR) run generate
 
 # ---------------------------------------------------------------------------
 # Database targets (all use goose against the local compose Postgres)
