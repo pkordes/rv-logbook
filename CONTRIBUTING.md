@@ -128,6 +128,7 @@ all requests appear to the browser as same-origin (`localhost:5173`).
 | `make frontend/build` | Build production bundle to `frontend/dist/` |
 | `make frontend/test` | Run Vitest unit tests (single run, no watch) |
 | `make frontend/lint` | Run ESLint + TypeScript type-check (`tsc --noEmit`) |
+| `make frontend/generate` | Regenerate `src/api/openapi.d.ts` from `backend/spec/openapi.yaml` |
 | `make db/up` | Start the Postgres container (background) |
 | `make db/down` | Stop containers — data volume persists |
 | `make db/migrate` | Apply pending migrations (`goose up`) |
@@ -191,12 +192,51 @@ make frontend/test   # single run
 | `@testing-library/jest-dom` | Extra `expect` matchers: `toBeInTheDocument()`, `toHaveTextContent()`, etc. |
 | `@testing-library/user-event` | Simulate real user interactions (click, type) |
 | `jsdom` | Simulates a browser DOM in Node.js so tests run without a real browser |
+| `zod` | Runtime schema validation — parses and validates API responses at the boundary |
 
 ### The `vi.stubGlobal` pattern
 
 Frontend unit tests never hit the real network. `fetch` is replaced with a fake
 using `vi.stubGlobal('fetch', mockFn)` — the same idea as a Go mock that implements
 an interface. `vi.restoreAllMocks()` in `afterEach` puts the real `fetch` back.
+
+### Frontend API Type Safety
+
+The frontend enforces type safety at the API boundary with two complementary tools:
+
+| Tool | Stage | Source | Purpose |
+|------|-------|--------|---------|
+| `openapi-typescript` | Compile time | `backend/spec/openapi.yaml` | Generates `src/api/openapi.d.ts` — TypeScript interfaces that mirror the spec exactly |
+| `zod` | Runtime | `src/api/schemas.ts` | Validates API responses against a schema and throws if the shape is wrong |
+
+**Generated file:** `src/api/openapi.d.ts` is committed to the repository so CI can
+type-check without running the generator. It must be regenerated any time
+`openapi.yaml` changes:
+
+```bash
+make frontend/generate
+git add frontend/src/api/openapi.d.ts
+```
+
+**Type sources by use case:**
+
+- **Request body / input types** — import from generated spec (`components['schemas']['CreateTripRequest']`).
+  These are the single source of truth for what the API accepts.
+- **Response types** — derive from Zod via `z.infer<typeof TripSchema>` (in `src/api/schemas.ts`).
+  This ensures the inferred type is always consistent with the runtime check.
+- **Compatibility check** — `schemas.ts` includes a compile-time assertion that the Zod-inferred
+  `Trip` type is assignable to the spec-generated `Trip` type. If you edit one and forget the
+  other, `make frontend/lint` will catch it immediately.
+
+**Where each layer lives:**
+
+```
+src/api/openapi.d.ts   ← generated; do not edit by hand
+src/api/schemas.ts     ← Zod schemas + z.infer types + compat checks
+src/api/trips.ts       ← apiFetch<unknown>(...).then(raw => Schema.parse(raw))
+```
+
+---
 
 ### TypeScript type-check
 
