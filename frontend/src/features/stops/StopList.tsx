@@ -36,7 +36,7 @@ export function StopList({ stops, onDelete, onEdit }: StopListProps) {
               <span className="ml-2 text-sm text-gray-500">{stop.location}</span>
             )}
             <span className="ml-3 text-sm text-gray-400">
-              {stop.arrived_at.slice(0, 10)}
+              {new Date(stop.arrived_at).toISOString().slice(0, 10)}
             </span>
           </div>
           <div className="flex gap-2">

@@ -133,6 +133,7 @@ export function TripDetailPage() {
         <>
           <h2 className="text-lg font-semibold mt-6 mb-2">Edit Stop</h2>
           <StopForm
+            key={editingStop.id}
             onSubmit={handleEditStop}
             isSubmitting={updateStop.isPending}
             initialValues={editingStop}
@@ -142,7 +143,7 @@ export function TripDetailPage() {
       ) : (
         <>
           <h2 className="text-lg font-semibold mt-6 mb-2">Add Stop</h2>
-          <StopForm onSubmit={handleAddStop} isSubmitting={isAdding} />
+          <StopForm key="new" onSubmit={handleAddStop} isSubmitting={isAdding} />
         </>
       )}
     </div>
