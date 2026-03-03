@@ -1,6 +1,7 @@
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { TripList } from '../features/trips/TripList'
-import { useTrips, useDeleteTrip } from '../features/trips/useTripQueries'
+import { TripForm } from '../features/trips/TripForm'
+import { useTrips, useCreateTrip, useDeleteTrip } from '../features/trips/useTripQueries'
 
 /**
  * TripsPage owns the /trips route.
@@ -11,6 +12,7 @@ import { useTrips, useDeleteTrip } from '../features/trips/useTripQueries'
  */
 export function TripsPage() {
   const { data, isLoading, isError } = useTrips()
+  const createTrip = useCreateTrip()
   const deleteTrip = useDeleteTrip()
 
   if (isLoading) {
@@ -29,7 +31,10 @@ export function TripsPage() {
     <div className="max-w-2xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">Trips</h1>
 
-      {/* TripForm will be added here in step 10.5 */}
+      <TripForm
+        onSubmit={(values) => createTrip.mutate(values)}
+        isSubmitting={createTrip.isPending}
+      />
 
       <TripList
         trips={data?.data ?? []}
