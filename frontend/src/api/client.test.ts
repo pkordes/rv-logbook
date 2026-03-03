@@ -101,4 +101,13 @@ describe('apiFetch', () => {
       expect((err as ApiError).message).toBe('name is required')
     }
   })
+
+  it('resolves without throwing on a 204 No Content response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(null, { status: 204 })),
+    )
+
+    await expect(apiFetch('/trips/123', { method: 'DELETE' })).resolves.toBeUndefined()
+  })
 })

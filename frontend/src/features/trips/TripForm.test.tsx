@@ -39,6 +39,14 @@ describe('TripForm', () => {
     });
   });
 
+  it('shows a validation error when start date is not in YYYY-MM-DD format', async () => {
+    render(<TripForm onSubmit={vi.fn()} isSubmitting={false} />);
+    await userEvent.type(screen.getByLabelText(/trip name/i), 'Pacific Coast');
+    await userEvent.type(screen.getByLabelText(/start date/i), '06012024');
+    await userEvent.click(screen.getByRole('button', { name: /add trip/i }));
+    expect(await screen.findByText(/yyyy-mm-dd/i)).toBeInTheDocument();
+  });
+
   it('disables the submit button while isSubmitting is true', () => {
     render(<TripForm onSubmit={vi.fn()} isSubmitting={true} />);
     expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled();
