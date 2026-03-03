@@ -22,6 +22,7 @@ type mockTagRepo struct {
 	addToStop      func(ctx context.Context, stopID, tagID uuid.UUID) error
 	removeFromStop func(ctx context.Context, stopID uuid.UUID, slug string) error
 	listByStop     func(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error)
+	updateName     func(ctx context.Context, slug, name string) (domain.Tag, error)
 }
 
 func (m *mockTagRepo) Upsert(ctx context.Context, name, slug string) (domain.Tag, error) {
@@ -44,6 +45,12 @@ func (m *mockTagRepo) RemoveFromStop(ctx context.Context, stopID uuid.UUID, slug
 }
 func (m *mockTagRepo) ListByStop(ctx context.Context, stopID uuid.UUID) ([]domain.Tag, error) {
 	return m.listByStop(ctx, stopID)
+}
+func (m *mockTagRepo) UpdateName(ctx context.Context, slug, name string) (domain.Tag, error) {
+	if m.updateName != nil {
+		return m.updateName(ctx, slug, name)
+	}
+	return domain.Tag{}, nil
 }
 
 // compile-time check
@@ -159,4 +166,42 @@ func TestTagService_List_ReturnsEmptySlice(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, got)
 	assert.Empty(t, got)
+}
+
+// ---- UpdateName ------------------------------------------------------------
+
+func TestTagService_UpdateName_OK(t *testing.T) {
+	expected := domain.Tag{ID: uuid.New(), Name: "National Park", Slug: "national-park"}
+	svc := service.NewTagService(&mockTagRepo{
+		updateName: func(_ context.Context, slug, name string) (domain.Tag, error) {
+			assert.Equal(t, "national-park", slug)
+			assert.Equal(t, "National Park", name)
+			return expected, nil
+		},
+	})
+
+	got, err := svc.UpdateName(context.Background(), "national-park", "National Park")
+
+	require.NoError(t, err)
+	assert.Equal(t, expected, got)
+}
+
+func TestTagService_UpdateName_EmptyName(t *testing.T) {
+	svc := service.NewTagService(&mockTagRepo{})
+
+	_, err := svc.UpdateName(context.Background(), "some-slug", "   ")
+
+	assert.ErrorIs(t, err, domain.ErrValidation)
+}
+
+func TestTagService_UpdateName_NotFound(t *testing.T) {
+	svc := service.NewTagService(&mockTagRepo{
+		updateName: func(_ context.Context, _, _ string) (domain.Tag, error) {
+			return domain.Tag{}, domain.ErrNotFound
+		},
+	})
+
+	_, err := svc.UpdateName(context.Background(), "no-such-slug", "Valid Name")
+
+	assert.ErrorIs(t, err, domain.ErrNotFound)
 }

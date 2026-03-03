@@ -208,3 +208,29 @@ func TestTagRepo_RemoveFromStop_NotFound(t *testing.T) {
 
 	assert.ErrorIs(t, err, domain.ErrNotFound)
 }
+
+// ---- UpdateName ------------------------------------------------------------
+
+func TestTagRepo_UpdateName_OK(t *testing.T) {
+	_, _, tagRepo := newTestTagRepos(t)
+	ctx := context.Background()
+
+	created, err := tagRepo.Upsert(ctx, "national park", "national-park")
+	require.NoError(t, err)
+
+	updated, err := tagRepo.UpdateName(ctx, "national-park", "National Park")
+
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, updated.ID, "ID must not change")
+	assert.Equal(t, "national-park", updated.Slug, "slug must never change")
+	assert.Equal(t, "National Park", updated.Name, "name should be updated")
+	assert.False(t, updated.CreatedAt.IsZero())
+}
+
+func TestTagRepo_UpdateName_NotFound(t *testing.T) {
+	_, _, tagRepo := newTestTagRepos(t)
+
+	_, err := tagRepo.UpdateName(context.Background(), "nonexistent-slug", "New Name")
+
+	assert.ErrorIs(t, err, domain.ErrNotFound)
+}
