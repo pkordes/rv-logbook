@@ -8,6 +8,9 @@ import * as tripQueries from '../features/trips/useTripQueries';
 import * as stopQueries from '../features/stops/useStopQueries';
 import * as stopsApi from '../api/stops';
 
+// Prevent TagInput's autocomplete effect from making real network calls.
+vi.mock('../api/tags', () => ({ searchTags: vi.fn().mockResolvedValue([]) }));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -173,7 +176,11 @@ describe('TripDetailPage', () => {
     renderPage();
     await userEvent.type(screen.getByLabelText(/stop name/i), 'Firehole Camp');
     await userEvent.type(screen.getByLabelText(/arrived at/i), '2025-07-01');
-    await userEvent.type(screen.getByLabelText(/tags/i), 'camping, hiking');
+    const tagInput = screen.getByRole('textbox', { name: /add tag/i });
+    await userEvent.type(tagInput, 'camping');
+    await userEvent.keyboard('{Enter}');
+    await userEvent.type(tagInput, 'hiking');
+    await userEvent.keyboard('{Enter}');
     await userEvent.click(screen.getByRole('button', { name: /add stop/i }));
 
     await waitFor(() => expect(stopsApi.createStop).toHaveBeenCalledOnce());
@@ -201,7 +208,9 @@ describe('TripDetailPage', () => {
       expect(screen.getByLabelText(/stop name/i)).toHaveValue('Yellowstone Camp');
     });
 
-    await userEvent.type(screen.getByLabelText(/tags/i), 'wildlife');
+    const tagInput = screen.getByRole('textbox', { name: /add tag/i });
+    await userEvent.type(tagInput, 'wildlife');
+    await userEvent.keyboard('{Enter}');
     await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
     await waitFor(() => expect(stopsApi.updateStop).toHaveBeenCalledOnce());

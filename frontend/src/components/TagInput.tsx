@@ -32,12 +32,11 @@ export function TagInput({ value, onChange }: TagInputProps) {
   const [suggestions, setSuggestions] = useState<Tag[]>([])
 
   // Fetch autocomplete suggestions whenever the input changes.
+  // Clearing suggestions when input is too short is handled in the onChange
+  // handler to avoid calling setState synchronously inside the effect body.
   useEffect(() => {
     const trimmed = inputValue.trim()
-    if (trimmed.length < 2) {
-      setSuggestions([])
-      return
-    }
+    if (trimmed.length < 2) return
 
     let cancelled = false
     searchTags(trimmed).then((tags) => {
@@ -61,6 +60,16 @@ export function TagInput({ value, onChange }: TagInputProps) {
     onChange(value.filter((t) => t !== name))
   }
 
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value
+    setInputValue(val)
+    // Clear suggestions immediately when the query becomes too short — avoids
+    // stale dropdown showing while the user is deleting characters.
+    if (val.trim().length < 2) {
+      setSuggestions([])
+    }
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -82,7 +91,7 @@ export function TagInput({ value, onChange }: TagInputProps) {
           type="text"
           aria-label="Add tag"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           className="w-full min-w-[6rem] border-none bg-transparent p-0 text-sm focus:outline-none"
           placeholder={value.length === 0 ? 'Add tags…' : ''}
