@@ -73,3 +73,22 @@ export function deleteStop(tripId: string, stopId: string): Promise<void> {
     method: 'DELETE',
   })
 }
+
+/** Input for adding a tag to a stop. */
+export type AddTagInput = components['schemas']['AddTagRequest']
+
+/**
+ * Add a tag to a stop by name. The server creates the tag if it does not
+ * exist, or reuses an existing one with the same slug.
+ * Returns void — callers invalidate the stop list themselves.
+ */
+export function addTagToStop(
+  tripId: string,
+  stopId: string,
+  input: AddTagInput,
+): Promise<void> {
+  return apiFetch<void>(`/trips/${tripId}/stops/${stopId}/tags`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}

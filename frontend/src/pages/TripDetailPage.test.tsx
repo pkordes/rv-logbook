@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { TripDetailPage } from './TripDetailPage';
 import * as tripQueries from '../features/trips/useTripQueries';
@@ -12,12 +13,17 @@ import * as stopQueries from '../features/stops/useStopQueries';
 const TRIP_ID = '00000000-0000-4000-8000-000000000001';
 
 function renderPage() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return render(
-    <MemoryRouter initialEntries={[`/trips/${TRIP_ID}`]}>
-      <Routes>
-        <Route path="/trips/:id" element={<TripDetailPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[`/trips/${TRIP_ID}`]}>
+        <Routes>
+          <Route path="/trips/:id" element={<TripDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

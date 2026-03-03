@@ -1,7 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { TripList } from './TripList';
 import type { Trip } from '../../api/schemas';
+
+// TripList uses <Link> internally, so every render needs a router context.
+const renderWithRouter = (ui: React.ReactElement) =>
+  render(<MemoryRouter>{ui}</MemoryRouter>);
 
 const makeTrip = (overrides: Partial<Trip> = {}): Trip => ({
   id: 'aaaaaaaa-0000-0000-0000-000000000001',
@@ -16,7 +21,7 @@ const makeTrip = (overrides: Partial<Trip> = {}): Trip => ({
 
 describe('TripList', () => {
   it('shows an empty-state message when there are no trips', () => {
-    render(<TripList trips={[]} onDelete={vi.fn()} />);
+    renderWithRouter(<TripList trips={[]} onDelete={vi.fn()} />);
     expect(screen.getByText(/no trips yet/i)).toBeInTheDocument();
   });
 
@@ -25,21 +30,21 @@ describe('TripList', () => {
       makeTrip({ id: 'aaaaaaaa-0000-0000-0000-000000000001', name: 'Pacific Coast' }),
       makeTrip({ id: 'aaaaaaaa-0000-0000-0000-000000000002', name: 'Desert Southwest' }),
     ];
-    render(<TripList trips={trips} onDelete={vi.fn()} />);
+    renderWithRouter(<TripList trips={trips} onDelete={vi.fn()} />);
     expect(screen.getByText('Pacific Coast')).toBeInTheDocument();
     expect(screen.getByText('Desert Southwest')).toBeInTheDocument();
   });
 
   it('renders the start date for each trip', () => {
     const trips = [makeTrip({ start_date: '2024-06-01' })];
-    render(<TripList trips={trips} onDelete={vi.fn()} />);
+    renderWithRouter(<TripList trips={trips} onDelete={vi.fn()} />);
     expect(screen.getByText(/2024-06-01/)).toBeInTheDocument();
   });
 
   it('calls onDelete with the trip id when the delete button is clicked', async () => {
     const onDelete = vi.fn();
     const trip = makeTrip({ id: 'aaaaaaaa-0000-0000-0000-000000000001', name: 'Road Trip' });
-    render(<TripList trips={[trip]} onDelete={onDelete} />);
+    renderWithRouter(<TripList trips={[trip]} onDelete={onDelete} />);
 
     await userEvent.click(screen.getByRole('button', { name: /delete road trip/i }));
     expect(onDelete).toHaveBeenCalledOnce();

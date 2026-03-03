@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createTrip,
   deleteTrip,
+  getTrip,
   listTrips,
   type CreateTripInput,
 } from '../../api/trips'
@@ -17,11 +18,23 @@ import {
 export const tripKeys = {
   all: ['trips'] as const,
   list: () => [...tripKeys.all, 'list'] as const,
+  detail: (id: string) => [...tripKeys.all, 'detail', id] as const,
 }
 
 // ---------------------------------------------------------------------------
 // Queries (read)
 // ---------------------------------------------------------------------------
+
+/**
+ * useTrip fetches a single trip by ID.
+ */
+export function useTrip(id: string) {
+  return useQuery({
+    queryKey: tripKeys.detail(id),
+    queryFn: () => getTrip(id),
+    enabled: Boolean(id),
+  })
+}
 
 /**
  * useTrips fetches the paginated trip list.

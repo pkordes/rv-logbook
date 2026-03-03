@@ -8,6 +8,7 @@ import { RootLayout } from './components/RootLayout'
 import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { TripsPage } from './pages/TripsPage'
+import { TripDetailPage } from './pages/TripDetailPage'
 
 /**
  * Application router.
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'trips', element: <TripsPage /> },
+      { path: 'trips/:id', element: <TripDetailPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
