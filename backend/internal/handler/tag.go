@@ -121,3 +121,17 @@ func (s *Server) DeleteTag(ctx context.Context, req gen.DeleteTagRequestObject) 
 	}
 	return gen.DeleteTag204Response{}, nil
 }
+
+// CreateTag handles POST /tags.
+// Upserts a tag by name — normalises to a slug and returns the existing tag
+// if the slug already exists. Returns 201 in both cases.
+func (s *Server) CreateTag(ctx context.Context, req gen.CreateTagRequestObject) (gen.CreateTagResponseObject, error) {
+	tag, err := s.tags.UpsertByName(ctx, req.Body.Name)
+	if err != nil {
+		if errors.Is(err, domain.ErrValidation) {
+			return gen.CreateTag422JSONResponse(validationBody(err)), nil
+		}
+		return nil, err
+	}
+	return gen.CreateTag201JSONResponse(tagToResponse(tag)), nil
+}
