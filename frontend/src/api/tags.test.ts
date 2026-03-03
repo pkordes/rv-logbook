@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { searchTags, listAllTags, patchTag } from './tags'
+import { searchTags, listAllTags, patchTag, deleteTag } from './tags'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -142,5 +142,33 @@ describe('patchTag', () => {
 
     expect(result.name).toBe('Yellowstone NP')
     expect(result.slug).toBe('yellowstone')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// deleteTag
+// ---------------------------------------------------------------------------
+
+describe('deleteTag', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('calls DELETE /api/tags/:slug', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchSpy)
+
+    await deleteTag('yellowstone')
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/tags/yellowstone',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('resolves without a value on 204', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })))
+
+    const result = await deleteTag('yellowstone')
+
+    expect(result).toBeUndefined()
   })
 })
