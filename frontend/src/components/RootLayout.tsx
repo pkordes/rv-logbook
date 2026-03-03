@@ -15,6 +15,8 @@ export function RootLayout() {
         <NavLink to="/">Home</NavLink>
         {' | '}
         <NavLink to="/trips">Trips</NavLink>
+        {' | '}
+        <NavLink to="/tags">Tags</NavLink>
       </nav>
       <main>
         <Outlet />

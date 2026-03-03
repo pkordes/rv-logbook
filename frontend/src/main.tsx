@@ -9,6 +9,7 @@ import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { TripsPage } from './pages/TripsPage'
 import { TripDetailPage } from './pages/TripDetailPage'
+import { TagsPage } from './pages/TagsPage'
 
 /**
  * Application router.
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'trips', element: <TripsPage /> },
       { path: 'trips/:id', element: <TripDetailPage /> },
+      { path: 'tags', element: <TagsPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
