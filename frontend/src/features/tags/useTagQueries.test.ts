@@ -112,4 +112,32 @@ describe('useDeleteTag', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(tagsApi.deleteTag).toHaveBeenCalledWith('yellowstone')
   })
+
+  it('also invalidates stop queries so cached trip pages refresh', async () => {
+    vi.spyOn(tagsApi, 'deleteTag').mockResolvedValue(undefined)
+
+    // Use an externally-held QueryClient so we can inspect its state.
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(QueryClientProvider, { client: queryClient }, children)
+
+    // Seed a stop list query that should be invalidated after tag deletion.
+    const stopsKey = ['trips', 'trip-1', 'stops', 'list']
+    queryClient.setQueryData(stopsKey, { data: [], pagination: { page: 1, limit: 20, total: 0 } })
+
+    const { result } = renderHook(() => useDeleteTag(), { wrapper })
+
+    act(() => {
+      result.current.mutate('yellowstone')
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    // TanStack Query marks queries as invalidated when invalidateQueries fires.
+    // If we only invalidate ['tags', 'list'], the stops key stays clean.
+    // This test fails until we also invalidate ['trips'] in onSuccess.
+    expect(queryClient.getQueryState(stopsKey)?.isInvalidated).toBe(true)
+  })
 })

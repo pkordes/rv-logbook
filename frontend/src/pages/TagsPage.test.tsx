@@ -108,13 +108,41 @@ describe('TagsPage', () => {
     expect(screen.getByText(/failed to load tags/i)).toBeInTheDocument()
   })
 
-  it('calls deleteTag mutation when Delete button is clicked', async () => {
+  it('shows inline confirmation when Delete is clicked', async () => {
     const user = userEvent.setup()
     renderPage()
 
-    await user.click(screen.getByRole('button', { name: /delete/i }))
+    await user.click(screen.getByRole('button', { name: /^delete$/i }))
+
+    expect(screen.getByText(/this will remove it from all stops/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /confirm delete/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /keep/i })).toBeInTheDocument()
+    // Original Delete button should no longer be visible for that row
+    expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+  })
+
+  it('calls deleteTag mutation when Confirm delete is clicked', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(screen.getByRole('button', { name: /^delete$/i }))
+    await user.click(screen.getByRole('button', { name: /confirm delete/i }))
 
     expect(deleteMutate).toHaveBeenCalledWith('yellowstone')
+  })
+
+  it('hides confirmation and does not delete when Keep is clicked', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(screen.getByRole('button', { name: /^delete$/i }))
+    expect(screen.getByRole('button', { name: /confirm delete/i })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /keep/i }))
+
+    expect(deleteMutate).not.toHaveBeenCalled()
+    // Restore the row to normal
+    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument()
   })
 
   it('shows an inline rename form when Edit is clicked', async () => {
