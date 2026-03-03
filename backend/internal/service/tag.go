@@ -77,6 +77,22 @@ func (s *TagService) ListPaged(ctx context.Context, prefix string, p domain.Pagi
 	return tags, total, nil
 }
 
+// UpdateName sets the display name of an existing tag without changing its slug.
+// Returns domain.ErrValidation if name is empty; domain.ErrNotFound if the slug
+// does not match any tag.
+func (s *TagService) UpdateName(ctx context.Context, slug, name string) (domain.Tag, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return domain.Tag{}, fmt.Errorf("%w: tag name is required", domain.ErrValidation)
+	}
+
+	result, err := s.tags.UpdateName(ctx, slug, name)
+	if err != nil {
+		return domain.Tag{}, fmt.Errorf("service.TagService.UpdateName: %w", err)
+	}
+	return result, nil
+}
+
 // toSlug converts a display name to a URL-safe, lowercase, hyphenated slug.
 // Examples:
 //

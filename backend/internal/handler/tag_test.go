@@ -22,9 +22,9 @@ import (
 // ---- mock TagServicer -------------------------------------------------------
 
 type mockTagServicer struct {
-	list        func(ctx context.Context, prefix string) ([]domain.Tag, error)
-	listPaged   func(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
-	updateName  func(ctx context.Context, slug, name string) (domain.Tag, error)
+	list       func(ctx context.Context, prefix string) ([]domain.Tag, error)
+	listPaged  func(ctx context.Context, prefix string, p domain.PaginationParams) ([]domain.Tag, int64, error)
+	updateName func(ctx context.Context, slug, name string) (domain.Tag, error)
 }
 
 func (m *mockTagServicer) List(ctx context.Context, prefix string) ([]domain.Tag, error) {

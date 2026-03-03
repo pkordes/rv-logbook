@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -72,18 +73,29 @@ func (r *pgStopRepo) Create(ctx context.Context, stop domain.Stop) (domain.Stop,
 	if err != nil {
 		return domain.Stop{}, fmt.Errorf("repo.StopRepo.Create: %w", err)
 	}
+	result.Tags = []domain.Tag{}
 	return result, nil
 }
 
 // GetByID retrieves a stop by primary key, scoped to the given tripID.
 func (r *pgStopRepo) GetByID(ctx context.Context, tripID, stopID uuid.UUID) (domain.Stop, error) {
 	const q = `
-		SELECT id, trip_id, name, location, arrived_at, departed_at, notes, created_at, updated_at
-		FROM stops
-		WHERE id = @id AND trip_id = @trip_id`
+		SELECT s.id, s.trip_id, s.name, s.location, s.arrived_at, s.departed_at, s.notes, s.created_at, s.updated_at,
+		       COALESCE(
+		           json_agg(
+		               json_build_object('id', t.id, 'name', t.name, 'slug', t.slug, 'created_at', t.created_at)
+		               ORDER BY t.slug
+		           ) FILTER (WHERE t.id IS NOT NULL),
+		           '[]'::json
+		       ) AS tags
+		FROM stops s
+		LEFT JOIN stop_tags st ON st.stop_id = s.id
+		LEFT JOIN tags t ON t.id = st.tag_id
+		WHERE s.id = @id AND s.trip_id = @trip_id
+		GROUP BY s.id`
 
 	row := r.db.QueryRow(ctx, q, pgx.NamedArgs{"id": stopID, "trip_id": tripID})
-	result, err := scanStop(row)
+	result, err := scanStopFull(row)
 	if err != nil {
 		return domain.Stop{}, fmt.Errorf("repo.StopRepo.GetByID: %w", err)
 	}
@@ -93,10 +105,20 @@ func (r *pgStopRepo) GetByID(ctx context.Context, tripID, stopID uuid.UUID) (dom
 // ListByTripID returns all stops for a trip, ordered by arrival time.
 func (r *pgStopRepo) ListByTripID(ctx context.Context, tripID uuid.UUID) ([]domain.Stop, error) {
 	const q = `
-		SELECT id, trip_id, name, location, arrived_at, departed_at, notes, created_at, updated_at
-		FROM stops
-		WHERE trip_id = @trip_id
-		ORDER BY arrived_at ASC`
+		SELECT s.id, s.trip_id, s.name, s.location, s.arrived_at, s.departed_at, s.notes, s.created_at, s.updated_at,
+		       COALESCE(
+		           json_agg(
+		               json_build_object('id', t.id, 'name', t.name, 'slug', t.slug, 'created_at', t.created_at)
+		               ORDER BY t.slug
+		           ) FILTER (WHERE t.id IS NOT NULL),
+		           '[]'::json
+		       ) AS tags
+		FROM stops s
+		LEFT JOIN stop_tags st ON st.stop_id = s.id
+		LEFT JOIN tags t ON t.id = st.tag_id
+		WHERE s.trip_id = @trip_id
+		GROUP BY s.id
+		ORDER BY s.arrived_at ASC`
 
 	rows, err := r.db.Query(ctx, q, pgx.NamedArgs{"trip_id": tripID})
 	if err != nil {
@@ -106,7 +128,7 @@ func (r *pgStopRepo) ListByTripID(ctx context.Context, tripID uuid.UUID) ([]doma
 
 	stops := []domain.Stop{} // initialise as empty slice so JSON serialises as [] not null
 	for rows.Next() {
-		s, err := scanStop(rows)
+		s, err := scanStopFull(rows)
 		if err != nil {
 			return nil, fmt.Errorf("repo.StopRepo.ListByTripID: scan: %w", err)
 		}
@@ -121,6 +143,7 @@ func (r *pgStopRepo) ListByTripID(ctx context.Context, tripID uuid.UUID) ([]doma
 
 // ListByTripIDPaged returns one page of stops for a trip ordered by arrived_at ascending,
 // together with the total number of stops for that trip across all pages.
+// Each stop includes its linked tags, aggregated in a single query.
 func (r *pgStopRepo) ListByTripIDPaged(ctx context.Context, tripID uuid.UUID, p domain.PaginationParams) ([]domain.Stop, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM stops WHERE trip_id = @trip_id`
 
@@ -130,10 +153,20 @@ func (r *pgStopRepo) ListByTripIDPaged(ctx context.Context, tripID uuid.UUID, p 
 	}
 
 	const q = `
-		SELECT id, trip_id, name, location, arrived_at, departed_at, notes, created_at, updated_at
-		FROM stops
-		WHERE trip_id = @trip_id
-		ORDER BY arrived_at ASC
+		SELECT s.id, s.trip_id, s.name, s.location, s.arrived_at, s.departed_at, s.notes, s.created_at, s.updated_at,
+		       COALESCE(
+		           json_agg(
+		               json_build_object('id', t.id, 'name', t.name, 'slug', t.slug, 'created_at', t.created_at)
+		               ORDER BY t.slug
+		           ) FILTER (WHERE t.id IS NOT NULL),
+		           '[]'::json
+		       ) AS tags
+		FROM stops s
+		LEFT JOIN stop_tags st ON st.stop_id = s.id
+		LEFT JOIN tags t ON t.id = st.tag_id
+		WHERE s.trip_id = @trip_id
+		GROUP BY s.id
+		ORDER BY s.arrived_at ASC
 		LIMIT @limit OFFSET @offset`
 
 	rows, err := r.db.Query(ctx, q, pgx.NamedArgs{
@@ -148,7 +181,7 @@ func (r *pgStopRepo) ListByTripIDPaged(ctx context.Context, tripID uuid.UUID, p 
 
 	stops := []domain.Stop{}
 	for rows.Next() {
-		s, err := scanStop(rows)
+		s, err := scanStopFull(rows)
 		if err != nil {
 			return nil, 0, fmt.Errorf("repo.StopRepo.ListByTripIDPaged: scan: %w", err)
 		}
@@ -189,6 +222,7 @@ func (r *pgStopRepo) Update(ctx context.Context, stop domain.Stop) (domain.Stop,
 	if err != nil {
 		return domain.Stop{}, fmt.Errorf("repo.StopRepo.Update: %w", err)
 	}
+	result.Tags = []domain.Tag{}
 	return result, nil
 }
 
@@ -208,6 +242,8 @@ func (r *pgStopRepo) Delete(ctx context.Context, tripID, stopID uuid.UUID) error
 
 // scanStop maps a single database row into a domain.Stop.
 // It handles UUID conversions and nullable location, departed_at, and notes columns.
+// Use this for write operations (Create, Update) whose RETURNING clause does not
+// include the tag aggregation column.
 func scanStop(s scanner) (domain.Stop, error) {
 	var (
 		t          domain.Stop
@@ -234,6 +270,67 @@ func scanStop(s scanner) (domain.Stop, error) {
 	t.DepartedAt = departedAt
 	if notes != nil {
 		t.Notes = *notes
+	}
+
+	return t, nil
+}
+
+// tagJSON is the intermediate type used to unmarshal the json_agg result from
+// Postgres. UUIDs come back as strings (Postgres casts them automatically inside
+// json_build_object), and created_at is an ISO 8601 timestamp.
+type tagJSON struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// scanStopFull maps a database row that includes the json_agg tags column into a
+// domain.Stop with Tags populated. Use this for all read operations (GetByID,
+// List*) whose SELECT includes the COALESCE/json_agg expression.
+func scanStopFull(s scanner) (domain.Stop, error) {
+	var (
+		t          domain.Stop
+		id         pgtype.UUID
+		tripID     pgtype.UUID
+		location   *string
+		departedAt *time.Time
+		notes      *string
+		tagsJSON   []byte
+	)
+
+	err := s.Scan(&id, &tripID, &t.Name, &location, &t.ArrivedAt, &departedAt, &notes, &t.CreatedAt, &t.UpdatedAt, &tagsJSON)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Stop{}, domain.ErrNotFound
+		}
+		return domain.Stop{}, err
+	}
+
+	t.ID = uuid.UUID(id.Bytes)
+	t.TripID = uuid.UUID(tripID.Bytes)
+	if location != nil {
+		t.Location = *location
+	}
+	t.DepartedAt = departedAt
+	if notes != nil {
+		t.Notes = *notes
+	}
+
+	// Parse the JSON-aggregated tags. The COALESCE guarantees at least '[]',
+	// so tagsJSON is never nil or empty.
+	var rows []tagJSON
+	if err := json.Unmarshal(tagsJSON, &rows); err != nil {
+		return domain.Stop{}, fmt.Errorf("scanStopFull: unmarshal tags: %w", err)
+	}
+
+	t.Tags = make([]domain.Tag, len(rows))
+	for i, r := range rows {
+		id, err := uuid.Parse(r.ID)
+		if err != nil {
+			return domain.Stop{}, fmt.Errorf("scanStopFull: parse tag id: %w", err)
+		}
+		t.Tags[i] = domain.Tag{ID: id, Name: r.Name, Slug: r.Slug, CreatedAt: r.CreatedAt}
 	}
 
 	return t, nil

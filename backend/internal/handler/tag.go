@@ -91,3 +91,20 @@ func tagToResponse(t domain.Tag) gen.Tag {
 		CreatedAt: t.CreatedAt,
 	}
 }
+
+// PatchTag handles PATCH /tags/{slug}.
+// Updates the display name of a tag. The slug is the stable identifier and is
+// never changed — only the name displayed to the user changes.
+func (s *Server) PatchTag(ctx context.Context, req gen.PatchTagRequestObject) (gen.PatchTagResponseObject, error) {
+	tag, err := s.tags.UpdateName(ctx, req.Slug, req.Body.Name)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return gen.PatchTag404JSONResponse(notFoundBody("tag not found")), nil
+		}
+		if errors.Is(err, domain.ErrValidation) {
+			return gen.PatchTag422JSONResponse(validationBody(err)), nil
+		}
+		return nil, err
+	}
+	return gen.PatchTag200JSONResponse(tagToResponse(tag)), nil
+}

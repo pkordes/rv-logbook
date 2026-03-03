@@ -113,7 +113,12 @@ func (s *Server) DeleteStop(ctx context.Context, req gen.DeleteStopRequestObject
 // stopToResponse converts a domain.Stop to the generated API response type.
 // Empty strings become nil pointers for optional JSON fields (location, notes)
 // so they are omitted from the response rather than sent as empty strings.
+// Tags are always included — the repo guarantees a non-nil slice.
 func stopToResponse(s domain.Stop) gen.Stop {
+	tags := make([]gen.Tag, len(s.Tags))
+	for i, t := range s.Tags {
+		tags[i] = tagToResponse(t)
+	}
 	return gen.Stop{
 		Id:         openapi_types.UUID(s.ID),
 		TripId:     openapi_types.UUID(s.TripID),
@@ -124,6 +129,7 @@ func stopToResponse(s domain.Stop) gen.Stop {
 		Notes:      nilIfEmpty(s.Notes),
 		CreatedAt:  s.CreatedAt,
 		UpdatedAt:  s.UpdatedAt,
+		Tags:       &tags,
 	}
 }
 

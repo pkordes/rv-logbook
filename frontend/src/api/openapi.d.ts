@@ -66,6 +66,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tags/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The slug of the tag to update. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a tag's display name
+         * @description Updates only the display name of a tag. The slug is the stable identifier and is never changed by this operation.
+         */
+        patch: operations["PatchTag"];
+        trace?: never;
+    };
     "/trips": {
         parameters: {
             query?: never;
@@ -314,6 +337,8 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+            /** @description Tags linked to this stop, ordered by slug. */
+            tags?: components["schemas"]["Tag"][];
         };
         UpdateTripRequest: {
             /** @example Summer Tour 2025 */
@@ -342,6 +367,10 @@ export interface components {
             created_at: string;
         };
         AddTagRequest: {
+            /** @example National Park */
+            name: string;
+        };
+        PatchTagRequest: {
             /** @example National Park */
             name: string;
         };
@@ -477,6 +506,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TagList"];
+                };
+            };
+        };
+    };
+    PatchTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The slug of the tag to update. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchTagRequest"];
+            };
+        };
+        responses: {
+            /** @description Tag updated successfully. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Tag not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation error — name is required. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
