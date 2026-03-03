@@ -3,7 +3,9 @@ import {
   createStop,
   deleteStop,
   listStops,
+  updateStop,
   type CreateStopInput,
+  type UpdateStopInput,
 } from '../../api/stops'
 
 // ---------------------------------------------------------------------------
@@ -70,6 +72,23 @@ export function useDeleteStop(tripId: string) {
 
   return useMutation({
     mutationFn: (stopId: string) => deleteStop(tripId, stopId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: stopKeys.list(tripId) })
+    },
+  })
+}
+
+/**
+ * useUpdateStop returns a mutation for editing an existing stop.
+ * The mutation argument is a { stopId, input } object so callers
+ * can pass both the target ID and the updated fields together.
+ */
+export function useUpdateStop(tripId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ stopId, input }: { stopId: string; input: UpdateStopInput }) =>
+      updateStop(tripId, stopId, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: stopKeys.list(tripId) })
     },

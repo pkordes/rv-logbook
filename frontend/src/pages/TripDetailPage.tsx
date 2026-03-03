@@ -5,8 +5,9 @@ import { LoadingSpinner } from '../components/LoadingSpinner'
 import { StopList } from '../features/stops/StopList'
 import { StopForm, type StopFormValues } from '../features/stops/StopForm'
 import { useTrip } from '../features/trips/useTripQueries'
-import { useStops, useDeleteStop, stopKeys } from '../features/stops/useStopQueries'
+import { useStops, useDeleteStop, useUpdateStop, stopKeys } from '../features/stops/useStopQueries'
 import { createStop, addTagToStop } from '../api/stops'
+import type { Stop } from '../api/stops'
 import { ApiError } from '../api/client'
 
 /**
@@ -30,9 +31,11 @@ export function TripDetailPage() {
   const trip = useTrip(tripId)
   const stops = useStops(tripId)
   const deleteStop = useDeleteStop(tripId)
+  const updateStop = useUpdateStop(tripId)
 
   const [isAdding, setIsAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
+  const [editingStop, setEditingStop] = useState<Stop | null>(null)
 
   async function handleAddStop(values: StopFormValues) {
     setIsAdding(true)
@@ -56,6 +59,14 @@ export function TripDetailPage() {
     } finally {
       setIsAdding(false)
     }
+  }
+
+  function handleEditStop(values: StopFormValues) {
+    if (!editingStop) return
+    updateStop.mutate(
+      { stopId: editingStop.id, input: values },
+      { onSuccess: () => setEditingStop(null) },
+    )
   }
 
   // ── Trip loading states ──────────────────────────────────────────────────
@@ -114,11 +125,26 @@ export function TripDetailPage() {
         <StopList
           stops={stops.data?.data ?? []}
           onDelete={(id) => deleteStop.mutate(id)}
+          onEdit={(stop) => setEditingStop(stop)}
         />
       )}
 
-      <h2 className="text-lg font-semibold mt-6 mb-2">Add Stop</h2>
-      <StopForm onSubmit={handleAddStop} isSubmitting={isAdding} />
+      {editingStop ? (
+        <>
+          <h2 className="text-lg font-semibold mt-6 mb-2">Edit Stop</h2>
+          <StopForm
+            onSubmit={handleEditStop}
+            isSubmitting={updateStop.isPending}
+            initialValues={editingStop}
+            onCancel={() => setEditingStop(null)}
+          />
+        </>
+      ) : (
+        <>
+          <h2 className="text-lg font-semibold mt-6 mb-2">Add Stop</h2>
+          <StopForm onSubmit={handleAddStop} isSubmitting={isAdding} />
+        </>
+      )}
     </div>
   )
 }

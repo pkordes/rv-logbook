@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -135,7 +135,9 @@ describe('TripDetailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /edit yellowstone camp/i }));
 
     expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/stop name/i)).toHaveValue('Yellowstone Camp');
+    await waitFor(() => {
+      expect(screen.getByLabelText(/stop name/i)).toHaveValue('Yellowstone Camp');
+    });
   });
 
   it('returns to the add stop form when Cancel is clicked in edit mode', async () => {

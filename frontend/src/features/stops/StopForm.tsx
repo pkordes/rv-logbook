@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import type { Stop } from '../../api/stops'
 
 /**
  * Converts a YYYY-MM-DD date string to a midnight UTC RFC 3339 timestamp.
@@ -56,6 +58,14 @@ interface StopFormProps {
    * Controlled by the parent so the form stays unaware of async state.
    */
   isSubmitting: boolean
+  /**
+   * When provided the form is pre-filled and the submit button reads
+   * "Save Changes" instead of "Add Stop".  The arrived_at timestamp is
+   * converted back to YYYY-MM-DD for display in the text input.
+   */
+  initialValues?: Stop
+  /** Called when the user clicks Cancel (only rendered when initialValues is set). */
+  onCancel?: () => void
 }
 
 /**
@@ -64,7 +74,8 @@ interface StopFormProps {
  * The tag input accepts a comma-separated list of names (e.g. "camping, national park").
  * Splitting and trimming happens here so callers receive a clean `string[]`.
  */
-export function StopForm({ onSubmit, isSubmitting }: StopFormProps) {
+export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: StopFormProps) {
+  const isEditing = Boolean(initialValues)
   const {
     register,
     handleSubmit,
@@ -72,7 +83,35 @@ export function StopForm({ onSubmit, isSubmitting }: StopFormProps) {
     formState: { errors },
   } = useForm<StopFormInput>({
     resolver: zodResolver(stopFormSchema),
+    defaultValues: initialValues
+      ? {
+          name: initialValues.name,
+          // arrived_at is stored as RFC 3339 — slice to YYYY-MM-DD for the date text input
+          arrived_at: initialValues.arrived_at.slice(0, 10),
+          departed_at: initialValues.departed_at?.slice(0, 10) ?? '',
+          location: initialValues.location ?? '',
+          notes: initialValues.notes ?? '',
+          tagsRaw: '',
+        }
+      : undefined,
   })
+
+  // When the edit target changes (user switches from one stop to another),
+  // reset the form to the new values. Also handles the case where the form
+  // is rendered in a parent that mounts it before RHF's ref callbacks fire.
+  useEffect(() => {
+    if (initialValues) {
+      reset({
+        name: initialValues.name,
+        arrived_at: initialValues.arrived_at.slice(0, 10),
+        departed_at: initialValues.departed_at?.slice(0, 10) ?? '',
+        location: initialValues.location ?? '',
+        notes: initialValues.notes ?? '',
+        tagsRaw: '',
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValues?.id])
 
   function handleValidSubmit(values: StopFormOutput) {
     const tagNames = (values.tagsRaw ?? '')
@@ -184,8 +223,17 @@ export function StopForm({ onSubmit, isSubmitting }: StopFormProps) {
         disabled={isSubmitting}
         className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
       >
-        {isSubmitting ? 'Saving…' : 'Add Stop'}
+        {isSubmitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Stop'}
       </button>
+      {isEditing && onCancel && (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="ml-2 rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+      )}
     </form>
   )
 }
