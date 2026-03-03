@@ -7,6 +7,7 @@ import { queryClient } from './api/queryClient'
 import { RootLayout } from './components/RootLayout'
 import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { TripsPage } from './pages/TripsPage'
 
 /**
  * Application router.
@@ -22,6 +23,7 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'trips', element: <TripsPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
