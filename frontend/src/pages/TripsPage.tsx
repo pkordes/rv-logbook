@@ -31,6 +31,17 @@ export function TripsPage() {
     <div className="max-w-2xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">Trips</h1>
 
+      {createTrip.isError && (
+        <p className="mb-4 text-sm text-red-600">
+          Failed to create trip: {createTrip.error?.message ?? 'Unknown error'}
+        </p>
+      )}
+      {deleteTrip.isError && (
+        <p className="mb-4 text-sm text-red-600">
+          Failed to delete trip: {deleteTrip.error?.message ?? 'Unknown error'}
+        </p>
+      )}
+
       <TripForm
         onSubmit={(values) => createTrip.mutate(values)}
         isSubmitting={createTrip.isPending}

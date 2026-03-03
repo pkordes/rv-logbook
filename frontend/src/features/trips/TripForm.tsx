@@ -8,9 +8,17 @@ const tripFormSchema = z.object({
     .string()
     .min(1, 'Name is required')
     .transform((s) => s.trim()),
-  start_date: z.string().min(1, 'Start date is required'),
+  start_date: z
+    .string()
+    .min(1, 'Start date is required')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   // RHF registers empty inputs as '' not undefined; transform to match API expectation.
-  end_date: z.string().transform((v) => v === '' ? undefined : v).optional(),
+  end_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .transform((v) => v === '' ? undefined : v)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
 })
 
 /** The validated and coerced form values — inferred directly from the schema. */
