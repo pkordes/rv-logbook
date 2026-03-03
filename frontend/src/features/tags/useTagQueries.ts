@@ -58,7 +58,8 @@ export function useUpdateTag() {
  * useDeleteTag returns a mutation for permanently deleting a tag by slug.
  *
  * The server cascades the deletion to all stop_tags rows — the frontend does
- * not need to do extra cleanup. The tag list is invalidated on success.
+ * not need to do extra cleanup. Both the tag list and all trip/stop caches
+ * are invalidated on success so any open TripDetailPage reflects the removal.
  */
 export function useDeleteTag() {
   const queryClient = useQueryClient()
@@ -67,6 +68,10 @@ export function useDeleteTag() {
     mutationFn: (slug: string) => deleteTag(slug),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: tagKeys.list() })
+      // Invalidating ['trips'] cascades to all ['trips', tripId, 'stops', 'list']
+      // caches, so TripDetailPage will refetch stops (without the deleted tag)
+      // the next time it is viewed.
+      void queryClient.invalidateQueries({ queryKey: ['trips'] })
     },
   })
 }

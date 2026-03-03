@@ -24,6 +24,8 @@ export function TagsPage() {
   const [editingSlug, setEditingSlug] = useState<string | null>(null)
   // controlled value for the rename input.
   const [draftName, setDraftName] = useState('')
+  // slug of the tag awaiting delete confirmation, or null.
+  const [pendingDeleteSlug, setPendingDeleteSlug] = useState<string | null>(null)
 
   if (isLoading) {
     return <LoadingSpinner />
@@ -42,6 +44,7 @@ export function TagsPage() {
   function startEdit(slug: string, currentName: string) {
     setEditingSlug(slug)
     setDraftName(currentName)
+    setPendingDeleteSlug(null) // close any open confirmation
   }
 
   function cancelEdit() {
@@ -55,6 +58,21 @@ export function TagsPage() {
     updateTag.mutate({ slug, name: trimmed })
     setEditingSlug(null)
     setDraftName('')
+  }
+
+  function requestDelete(slug: string) {
+    setPendingDeleteSlug(slug)
+    setEditingSlug(null) // close any open rename form
+    setDraftName('')
+  }
+
+  function confirmDelete(slug: string) {
+    deleteTag.mutate(slug)
+    setPendingDeleteSlug(null)
+  }
+
+  function cancelDelete() {
+    setPendingDeleteSlug(null)
   }
 
   return (
@@ -117,6 +135,25 @@ export function TagsPage() {
                         Cancel
                       </button>
                     </span>
+                  ) : pendingDeleteSlug === tag.slug ? (
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm text-red-700">
+                        This will remove it from all stops.
+                      </span>
+                      <button
+                        onClick={() => confirmDelete(tag.slug)}
+                        disabled={deleteTag.isPending}
+                        className="text-sm text-red-600 font-semibold hover:underline"
+                      >
+                        Confirm delete
+                      </button>
+                      <button
+                        onClick={cancelDelete}
+                        className="text-sm text-gray-500 hover:underline"
+                      >
+                        Keep
+                      </button>
+                    </span>
                   ) : (
                     <span className="flex gap-2">
                       <button
@@ -126,7 +163,7 @@ export function TagsPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => deleteTag.mutate(tag.slug)}
+                        onClick={() => requestDelete(tag.slug)}
                         disabled={deleteTag.isPending}
                         className="text-sm text-red-600 hover:underline"
                       >
