@@ -92,3 +92,18 @@ export function addTagToStop(
     body: JSON.stringify(input),
   })
 }
+
+/**
+ * Remove a tag from a stop by slug. The tag record itself is not deleted —
+ * only the association between this stop and the tag is removed.
+ * Returns void — callers invalidate the stop list themselves.
+ */
+export function removeTagFromStop(
+  tripId: string,
+  stopId: string,
+  slug: string,
+): Promise<void> {
+  return apiFetch<void>(`/trips/${tripId}/stops/${stopId}/tags/${encodeURIComponent(slug)}`, {
+    method: 'DELETE',
+  })
+}
