@@ -44,6 +44,14 @@ go install gotest.tools/gotestsum@latest
 | `esbenp.prettier-vscode` | Auto-format on save |
 | `bradlc.vscode-tailwindcss` | Tailwind class autocomplete |
 
+### Browser Extensions (recommended)
+
+Install these in Chrome or Edge for frontend development:
+
+| Extension | Purpose |
+|-----------|--------|
+| [React Developer Tools](https://chromewebstore.google.com/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi) | Inspect component tree, props, state, TanStack Query cache |
+
 ---
 
 ## Environment Variables
@@ -93,8 +101,12 @@ make backend/run
 ```bash
 make frontend/dev
 # UI available at http://localhost:5173
-# Proxies /api requests to the backend automatically
+# Proxies /api/* requests to the backend automatically
+# Hot module replacement: file saves update the browser instantly without a full reload
 ```
+
+The Vite dev proxy means you never need to think about CORS during local development —
+all requests appear to the browser as same-origin (`localhost:5173`).
 
 ---
 
@@ -112,10 +124,10 @@ make frontend/dev
 | `make backend/test/handler` | Run handler-layer unit tests only (no DB — fast TDD loop) |
 | `make backend/lint` | Run `go vet` + `staticcheck` |
 | `make backend/generate` | Regenerate Go stubs from `openapi.yaml` |
-| `make frontend/dev` | Start Vite dev server (port 5173) |
+| `make frontend/dev` | Start Vite dev server (port 5173) with hot module replacement |
 | `make frontend/build` | Build production bundle to `frontend/dist/` |
-| `make frontend/test` | Run Vitest unit tests (single run) |
-| `make frontend/lint` | Run ESLint |
+| `make frontend/test` | Run Vitest unit tests (single run, no watch) |
+| `make frontend/lint` | Run ESLint + TypeScript type-check (`tsc --noEmit`) |
 | `make db/up` | Start the Postgres container (background) |
 | `make db/down` | Stop containers — data volume persists |
 | `make db/migrate` | Apply pending migrations (`goose up`) |
@@ -152,6 +164,51 @@ Branch CI calls `make backend/test/unit`. PR CI calls `make backend/test` with a
 ### API integration test isolation
 
 Repo tests use per-test DB transactions (rolled back in `t.Cleanup`) because the repo layer has direct pool access. API tests cannot use this technique — each HTTP request opens its own connection. Instead, each API test creates its own data and registers a `t.Cleanup` delete. Tests use unique names (e.g. timestamp-prefixed) where ordering or list results matter.
+
+---
+
+## Frontend Testing
+
+All frontend tests use **Vitest** as the test runner and **React Testing Library (RTL)** for rendering components. Tests run in a simulated browser environment provided by **jsdom**.
+
+```bash
+make frontend/test   # single run
+```
+
+### What gets tested
+
+| What | File location | How |
+|------|--------------|-----|
+| API client functions | `src/api/*.test.ts` | Mock `fetch` with `vi.stubGlobal`; assert URL, headers, error throwing |
+| React components | `src/**/*.test.tsx` | Render with RTL; assert visible text, roles, user interactions |
+
+### Key libraries
+
+| Library | Role |
+|---------|------|
+| `vitest` | Test runner — replaces Jest; Vite-native so no separate config needed |
+| `@testing-library/react` | `render()` + `screen` queries — find elements the way a user would |
+| `@testing-library/jest-dom` | Extra `expect` matchers: `toBeInTheDocument()`, `toHaveTextContent()`, etc. |
+| `@testing-library/user-event` | Simulate real user interactions (click, type) |
+| `jsdom` | Simulates a browser DOM in Node.js so tests run without a real browser |
+
+### The `vi.stubGlobal` pattern
+
+Frontend unit tests never hit the real network. `fetch` is replaced with a fake
+using `vi.stubGlobal('fetch', mockFn)` — the same idea as a Go mock that implements
+an interface. `vi.restoreAllMocks()` in `afterEach` puts the real `fetch` back.
+
+### TypeScript type-check
+
+`make frontend/lint` runs both ESLint and `tsc --noEmit`. The `tsc` step checks
+the full `src/` tree for type errors without emitting any output files. Vite
+skips type-checking for speed, so this is the only gate that catches type errors
+before commit.
+
+> **Note:** VS Code's TypeScript language server may show stale squiggles after
+> new files are created by tooling. `make frontend/lint` is authoritative — if it
+> passes, the code is correct. Use **Ctrl+Shift+P → TypeScript: Restart TS Server**
+> to refresh the editor display.
 
 ---
 
