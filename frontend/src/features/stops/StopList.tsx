@@ -42,7 +42,9 @@ export function StopList({ stops, onDelete, onEdit }: StopListProps) {
             {stop.tags.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
                 {stop.tags.map((tag) => (
-                  <TagPill key={tag.slug} name={tag.name} />
+                  <span key={tag.slug} data-testid={`stop-tag-${tag.slug}`}>
+                    <TagPill name={tag.name} />
+                  </span>
                 ))}
               </div>
             )}

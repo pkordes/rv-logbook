@@ -74,7 +74,9 @@ test.describe('Trip lifecycle', () => {
     ).toBeVisible()
     // The TagPill is also rendered in the stop row — confirms the tag was
     // persisted and re-fetched correctly by TanStack Query.
-    await expect(page.getByRole('button', { name: 'Remove camping' })).toBeVisible()
+    // data-testid="stop-tag-{slug}" is the stable handle for read-only pills
+    // in the stop list (no onRemove handler, so no button to query).
+    await expect(page.getByTestId('stop-tag-camping')).toBeVisible()
 
     // ── 5. Switch to timeline view and verify the stop is rendered ────────────
     await page.getByTestId('view-toggle-timeline').click()
@@ -146,10 +148,11 @@ test.describe('Tags management', () => {
 
     // Wait for the new row — the Edit button carries the tag name so its
     // presence proves both that the row rendered AND the name is correct.
-    await expect(page.getByRole('button', { name: `Edit ${tagName}` })).toBeVisible()
+    // exact: true prevents partial matching when tagName is a prefix of renamedName.
+    await expect(page.getByRole('button', { name: `Edit ${tagName}`, exact: true })).toBeVisible()
 
     // ── 3. Rename the tag ─────────────────────────────────────────────────────
-    await page.getByRole('button', { name: `Edit ${tagName}` }).click()
+    await page.getByRole('button', { name: `Edit ${tagName}`, exact: true }).click()
     // Inline rename input replaces the tag name cell.
     const renameInput = page.getByLabel('Rename tag')
     await renameInput.clear()
@@ -157,8 +160,10 @@ test.describe('Tags management', () => {
     await page.getByRole('button', { name: 'Save tag name' }).click()
 
     // The row should now show the new name; the old name should be gone.
-    await expect(page.getByRole('button', { name: `Edit ${renamedName}` })).toBeVisible()
-    await expect(page.getByRole('button', { name: `Edit ${tagName}` })).not.toBeVisible()
+    // exact: true on both — tagName is a prefix of renamedName so partial
+    // matching would cause the old-name assertion to falsely pass.
+    await expect(page.getByRole('button', { name: `Edit ${renamedName}`, exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: `Edit ${tagName}`, exact: true })).not.toBeVisible()
 
     // ── 4. Delete the tag ─────────────────────────────────────────────────────
     await page.getByRole('button', { name: `Delete ${renamedName}` }).click()
