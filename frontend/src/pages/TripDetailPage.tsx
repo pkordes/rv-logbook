@@ -11,6 +11,7 @@ import { useStops, useDeleteStop, stopKeys } from '../features/stops/useStopQuer
 import { createStop, updateStop, addTagToStop, removeTagFromStop } from '../api/stops'
 import type { Stop } from '../api/stops'
 import { ApiError } from '../api/client'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 
@@ -44,15 +45,12 @@ export function TripDetailPage() {
   const deleteStop = useDeleteStop(tripId)
 
   const [isAdding, setIsAdding] = useState(false)
-  const [addError, setAddError] = useState<string | null>(null)
   const [editingStop, setEditingStop] = useState<Stop | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [editError, setEditError] = useState<string | null>(null)
   const [view, setView] = useState<'list' | 'timeline'>('list')
 
   async function handleAddStop(values: StopFormValues) {
     setIsAdding(true)
-    setAddError(null)
     try {
       const stop = await createStop(tripId, values)
       for (const name of values.tagNames) {
@@ -62,12 +60,12 @@ export function TripDetailPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status >= 400 && e.status < 500) {
-          setAddError('Could not save stop. Please check your entries and try again.')
+          toast.error('Could not save stop. Please check your entries and try again.')
         } else {
-          setAddError('Server error. Please try again in a moment.')
+          toast.error('Server error. Please try again in a moment.')
         }
       } else {
-        setAddError('Could not reach the server. Is the backend running?')
+        toast.error('Could not reach the server. Is the backend running?')
       }
     } finally {
       setIsAdding(false)
@@ -77,7 +75,6 @@ export function TripDetailPage() {
   async function handleEditStop(values: StopFormValues) {
     if (!editingStop) return
     setIsEditing(true)
-    setEditError(null)
     try {
       await updateStop(tripId, editingStop.id, values)
 
@@ -98,12 +95,12 @@ export function TripDetailPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status >= 400 && e.status < 500) {
-          setEditError('Could not save changes. Please check your entries and try again.')
+          toast.error('Could not save changes. Please check your entries and try again.')
         } else {
-          setEditError('Server error. Please try again in a moment.')
+          toast.error('Server error. Please try again in a moment.')
         }
       } else {
-        setEditError('Could not reach the server. Is the backend running?')
+        toast.error('Could not reach the server. Is the backend running?')
       }
     } finally {
       setIsEditing(false)
@@ -179,22 +176,6 @@ export function TripDetailPage() {
           </CardAction>
         </CardHeader>
         <CardContent className="space-y-4">
-          {deleteStop.isError && (
-            <p role="alert" className="text-sm text-destructive">
-              Failed to delete stop: {deleteStop.error?.message ?? 'Unknown error'}
-            </p>
-          )}
-          {addError && (
-            <p role="alert" className="text-sm text-destructive">
-              Failed to add stop: {addError}
-            </p>
-          )}
-          {editError && (
-            <p role="alert" className="text-sm text-destructive">
-              Failed to save changes: {editError}
-            </p>
-          )}
-
           {stops.isLoading && <LoadingSpinner label="Loading stops..." />}
           {stops.isError && (
             <p className="text-destructive py-2">Failed to load stops.</p>
@@ -202,7 +183,11 @@ export function TripDetailPage() {
           {!stops.isLoading && !stops.isError && view === 'list' && (
             <StopList
               stops={stops.data?.data ?? []}
-              onDelete={(id) => deleteStop.mutate(id)}
+              onDelete={(id) =>
+                deleteStop.mutate(id, {
+                  onError: (e) => toast.error(`Failed to delete stop: ${e.message ?? 'Unknown error'}`),
+                })
+              }
               onEdit={(stop) => setEditingStop(stop)}
             />
           )}

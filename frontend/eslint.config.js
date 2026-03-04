@@ -77,7 +77,13 @@ const testabilityPlugin = {
 }
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // shadcn/ui generates files that intentionally export both components and
+  // utility functions (e.g. buttonVariants, badgeVariants) from the same
+  // module — this is the documented shadcn API for composing styles without
+  // rendering the full component. The react-refresh rule flags these as
+  // violations, but changing the generated files would break the shadcn
+  // update workflow. Treat src/components/ui/ as vendor code.
+  globalIgnores(['dist', 'src/components/ui/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

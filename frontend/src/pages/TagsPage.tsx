@@ -4,6 +4,7 @@ import { useTags, useUpdateTag, useDeleteTag, useCreateTag } from '../features/t
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { toast } from 'sonner'
 
 /**
  * TagsPage owns the /tags route.
@@ -61,7 +62,10 @@ export function TagsPage() {
   function saveEdit(slug: string) {
     const trimmed = draftName.trim()
     if (trimmed === '') return
-    updateTag.mutate({ slug, name: trimmed })
+    updateTag.mutate(
+      { slug, name: trimmed },
+      { onError: (e) => toast.error(`Failed to rename tag: ${e.message ?? 'Unknown error'}`) },
+    )
     setEditingSlug(null)
     setDraftName('')
   }
@@ -73,7 +77,9 @@ export function TagsPage() {
   }
 
   function confirmDelete(slug: string) {
-    deleteTag.mutate(slug)
+    deleteTag.mutate(slug, {
+      onError: (e) => toast.error(`Failed to delete tag: ${e.message ?? 'Unknown error'}`),
+    })
     setPendingDeleteSlug(null)
   }
 
@@ -118,17 +124,6 @@ export function TagsPage() {
           </form>
         </CardContent>
       </Card>
-
-      {updateTag.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          Failed to rename tag: {updateTag.error?.message ?? 'Unknown error'}
-        </p>
-      )}
-      {deleteTag.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          Failed to delete tag: {deleteTag.error?.message ?? 'Unknown error'}
-        </p>
-      )}
 
       {/* Tags table card */}
       <Card>

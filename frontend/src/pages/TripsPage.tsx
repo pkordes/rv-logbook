@@ -3,6 +3,7 @@ import { TripList } from '../features/trips/TripList'
 import { TripForm } from '../features/trips/TripForm'
 import { useTrips, useCreateTrip, useDeleteTrip } from '../features/trips/useTripQueries'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { toast } from 'sonner'
 
 /**
  * TripsPage owns the /trips route.
@@ -32,24 +33,17 @@ export function TripsPage() {
     <div className="max-w-xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Trips</h1>
 
-      {createTrip.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          Failed to create trip: {createTrip.error?.message ?? 'Unknown error'}
-        </p>
-      )}
-      {deleteTrip.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          Failed to delete trip: {deleteTrip.error?.message ?? 'Unknown error'}
-        </p>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle>New Trip</CardTitle>
         </CardHeader>
         <CardContent>
           <TripForm
-            onSubmit={(values) => createTrip.mutate(values)}
+            onSubmit={(values) =>
+              createTrip.mutate(values, {
+                onError: (e) => toast.error(`Failed to create trip: ${e.message ?? 'Unknown error'}`),
+              })
+            }
             isSubmitting={createTrip.isPending}
           />
         </CardContent>
@@ -62,7 +56,11 @@ export function TripsPage() {
         <CardContent>
           <TripList
             trips={data?.data ?? []}
-            onDelete={(id) => deleteTrip.mutate(id)}
+            onDelete={(id) =>
+              deleteTrip.mutate(id, {
+                onError: (e) => toast.error(`Failed to delete trip: ${e.message ?? 'Unknown error'}`),
+              })
+            }
           />
         </CardContent>
       </Card>
