@@ -1,3 +1,5 @@
+import { Badge } from '@/components/ui/badge'
+
 /** Props for {@link TagPill}. */
 interface TagPillProps {
   /** The display name of the tag. */
@@ -17,19 +19,19 @@ interface TagPillProps {
  */
 export function TagPill({ name, onRemove }: TagPillProps) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800">
+    <Badge variant="default" className="gap-1">
       {name}
       {onRemove !== undefined && (
         <button
           type="button"
           aria-label={`Remove ${name}`}
           onClick={onRemove}
-          className="ml-0.5 inline-flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full text-indigo-600 hover:bg-indigo-200 hover:text-indigo-900 focus:outline-none"
+          className="ml-0.5 inline-flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full opacity-60 hover:opacity-100 focus:outline-none"
         >
           {/* visually an × symbol, sized to fit inside the pill */}
           <span aria-hidden="true">&times;</span>
         </button>
       )}
-    </span>
+    </Badge>
   )
 }

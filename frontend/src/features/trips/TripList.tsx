@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Trip } from '../../api/schemas';
+import { Button } from '@/components/ui/button';
 
 /** Props for {@link TripList}. */
 interface TripListProps {
@@ -38,14 +39,16 @@ export function TripList({ trips, onDelete }: TripListProps) {
             </Link>
             <span className="ml-3 text-sm text-gray-500">{trip.start_date}</span>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             aria-label={`Delete ${trip.name}`}
             onClick={() => onDelete(trip.id)}
-            className="text-sm text-red-600 hover:text-red-800"
+            className="text-destructive hover:text-destructive"
           >
             Delete
-          </button>
+          </Button>
         </li>
       ))}
     </ul>

@@ -129,7 +129,7 @@ describe('TagsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Delete Yellowstone' }))
     await user.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    expect(deleteMutate).toHaveBeenCalledWith('yellowstone')
+    expect(deleteMutate).toHaveBeenCalledWith('yellowstone', expect.objectContaining({ onError: expect.any(Function) }))
   })
 
   it('hides confirmation and does not delete when Keep is clicked', async () => {
@@ -169,7 +169,10 @@ describe('TagsPage', () => {
     await user.click(screen.getByRole('button', { name: /save/i }))
 
     await waitFor(() =>
-      expect(updateMutate).toHaveBeenCalledWith({ slug: 'yellowstone', name: 'Yellowstone NP' }),
+      expect(updateMutate).toHaveBeenCalledWith(
+        { slug: 'yellowstone', name: 'Yellowstone NP' },
+        expect.objectContaining({ onError: expect.any(Function) }),
+      ),
     )
   })
 

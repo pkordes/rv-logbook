@@ -109,4 +109,16 @@ export default defineConfig([
       'testability/interactive-has-test-id': 'error',
     },
   },
+  // shadcn/ui intentionally exports both a component and a variant helper
+  // from the same file (e.g. Button + buttonVariants) so that callers can
+  // compose styles without rendering the full component. This conflicts with
+  // the react-refresh rule, which requires a file to export only components
+  // for reliable hot-module replacement. Only that one rule is relaxed here;
+  // all other rules — including the testability plugin — still apply.
+  {
+    files: ['src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

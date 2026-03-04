@@ -11,6 +11,9 @@ import { useStops, useDeleteStop, stopKeys } from '../features/stops/useStopQuer
 import { createStop, updateStop, addTagToStop, removeTagFromStop } from '../api/stops'
 import type { Stop } from '../api/stops'
 import { ApiError } from '../api/client'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Card, CardAction, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 
 /**
  * TripDetailPage owns the /trips/:id route.
@@ -42,15 +45,12 @@ export function TripDetailPage() {
   const deleteStop = useDeleteStop(tripId)
 
   const [isAdding, setIsAdding] = useState(false)
-  const [addError, setAddError] = useState<string | null>(null)
   const [editingStop, setEditingStop] = useState<Stop | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [editError, setEditError] = useState<string | null>(null)
   const [view, setView] = useState<'list' | 'timeline'>('list')
 
   async function handleAddStop(values: StopFormValues) {
     setIsAdding(true)
-    setAddError(null)
     try {
       const stop = await createStop(tripId, values)
       for (const name of values.tagNames) {
@@ -60,12 +60,12 @@ export function TripDetailPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status >= 400 && e.status < 500) {
-          setAddError('Could not save stop. Please check your entries and try again.')
+          toast.error('Could not save stop. Please check your entries and try again.')
         } else {
-          setAddError('Server error. Please try again in a moment.')
+          toast.error('Server error. Please try again in a moment.')
         }
       } else {
-        setAddError('Could not reach the server. Is the backend running?')
+        toast.error('Could not reach the server. Is the backend running?')
       }
     } finally {
       setIsAdding(false)
@@ -75,7 +75,6 @@ export function TripDetailPage() {
   async function handleEditStop(values: StopFormValues) {
     if (!editingStop) return
     setIsEditing(true)
-    setEditError(null)
     try {
       await updateStop(tripId, editingStop.id, values)
 
@@ -96,12 +95,12 @@ export function TripDetailPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status >= 400 && e.status < 500) {
-          setEditError('Could not save changes. Please check your entries and try again.')
+          toast.error('Could not save changes. Please check your entries and try again.')
         } else {
-          setEditError('Server error. Please try again in a moment.')
+          toast.error('Server error. Please try again in a moment.')
         }
       } else {
-        setEditError('Could not reach the server. Is the backend running?')
+        toast.error('Could not reach the server. Is the backend running?')
       }
     } finally {
       setIsEditing(false)
@@ -116,7 +115,7 @@ export function TripDetailPage() {
 
   if (trip.isError || !trip.data) {
     return (
-      <p className="text-red-600 py-4">
+      <p className="text-destructive py-4">
         Failed to load trip. Is the backend running?
       </p>
     )
@@ -127,106 +126,96 @@ export function TripDetailPage() {
   // ── Page ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
+    <div className="space-y-6">
       {/* Breadcrumb */}
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-muted-foreground">
         <Link to="/trips" className="hover:underline">
           ← All Trips
         </Link>
       </p>
 
-      {/* Trip header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold mb-1">{tripData.name}</h1>
-          <p className="text-sm text-gray-500">
+      {/* Trip header card */}
+      <Card>
+        <CardHeader>
+          <h1 className="text-2xl font-semibold leading-none tracking-tight">{tripData.name}</h1>
+          <CardDescription>
             Started: {tripData.start_date}
             {tripData.end_date && ` · Ended: ${tripData.end_date}`}
-          </p>
-        </div>
-        <ExportButton />
-      </div>
+          </CardDescription>
+          <CardAction>
+            <ExportButton />
+          </CardAction>
+        </CardHeader>
+      </Card>
 
-      {/* Stops header + view toggle */}
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-semibold">Stops</h2>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            data-testid="view-toggle-list"
-            onClick={() => setView('list')}
-            className={`rounded px-3 py-1 text-sm ${
-              view === 'list'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            List
-          </button>
-          <button
-            type="button"
-            data-testid="view-toggle-timeline"
-            onClick={() => setView('timeline')}
-            className={`rounded px-3 py-1 text-sm ${
-              view === 'timeline'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Timeline
-          </button>
-        </div>
-      </div>
+      {/* Stops card */}
+      <Card>
+        <CardHeader>
+          <h2 className="font-semibold leading-none tracking-tight">Stops</h2>
+          <CardAction>
+            <div className="flex gap-1">
+              <Button
+                type="button"
+                variant={view === 'list' ? 'default' : 'outline'}
+                size="sm"
+                data-testid="view-toggle-list"
+                onClick={() => setView('list')}
+              >
+                List
+              </Button>
+              <Button
+                type="button"
+                variant={view === 'timeline' ? 'default' : 'outline'}
+                size="sm"
+                data-testid="view-toggle-timeline"
+                onClick={() => setView('timeline')}
+              >
+                Timeline
+              </Button>
+            </div>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {stops.isLoading && <LoadingSpinner label="Loading stops..." />}
+          {stops.isError && (
+            <p className="text-destructive py-2">Failed to load stops.</p>
+          )}
+          {!stops.isLoading && !stops.isError && view === 'list' && (
+            <StopList
+              stops={stops.data?.data ?? []}
+              onDelete={(id) =>
+                deleteStop.mutate(id, {
+                  onError: (e) => toast.error(`Failed to delete stop: ${e.message ?? 'Unknown error'}`),
+                })
+              }
+              onEdit={(stop) => setEditingStop(stop)}
+            />
+          )}
+          {!stops.isLoading && !stops.isError && view === 'timeline' && (
+            <TripTimeline stops={stops.data?.data ?? []} />
+          )}
 
-      {deleteStop.isError && (
-        <p role="alert" className="mb-3 text-sm text-red-600">
-          Failed to delete stop: {deleteStop.error?.message ?? 'Unknown error'}
-        </p>
-      )}
-      {addError && (
-        <p role="alert" className="mb-3 text-sm text-red-600">
-          Failed to add stop: {addError}
-        </p>
-      )}
-
-      {editError && (
-        <p role="alert" className="mb-3 text-sm text-red-600">
-          Failed to save changes: {editError}
-        </p>
-      )}
-
-      {stops.isLoading && <LoadingSpinner label="Loading stops..." />}
-      {stops.isError && (
-        <p className="text-red-600 py-2">Failed to load stops.</p>
-      )}
-      {!stops.isLoading && !stops.isError && view === 'list' && (
-        <StopList
-          stops={stops.data?.data ?? []}
-          onDelete={(id) => deleteStop.mutate(id)}
-          onEdit={(stop) => setEditingStop(stop)}
-        />
-      )}
-      {!stops.isLoading && !stops.isError && view === 'timeline' && (
-        <TripTimeline stops={stops.data?.data ?? []} />
-      )}
-
-      {editingStop ? (
-        <>
-          <h2 className="text-lg font-semibold mt-6 mb-2">Edit Stop</h2>
-          <StopForm
-            key={editingStop.id}
-            onSubmit={handleEditStop}
-            isSubmitting={isEditing}
-            initialValues={editingStop}
-            onCancel={() => setEditingStop(null)}
-          />
-        </>
-      ) : (
-        <>
-          <h2 className="text-lg font-semibold mt-6 mb-2">Add Stop</h2>
-          <StopForm key="new" onSubmit={handleAddStop} isSubmitting={isAdding} />
-        </>
-      )}
+          <div className="border-t pt-4">
+            {editingStop ? (
+              <>
+                <h2 className="text-base font-semibold mb-3">Edit Stop</h2>
+                <StopForm
+                  key={editingStop.id}
+                  onSubmit={handleEditStop}
+                  isSubmitting={isEditing}
+                  initialValues={editingStop}
+                  onCancel={() => setEditingStop(null)}
+                />
+              </>
+            ) : (
+              <>
+                <h2 className="text-base font-semibold mb-3">Add Stop</h2>
+                <StopForm key="new" onSubmit={handleAddStop} isSubmitting={isAdding} />
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
