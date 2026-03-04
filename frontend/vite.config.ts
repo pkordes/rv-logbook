@@ -13,6 +13,9 @@ export default defineConfig({
     // mirrors the Jest API that most React tutorials use.
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // Exclude Playwright E2E specs — they import from @playwright/test, not
+    // vitest, and must run via `make e2e` / `npx playwright test` instead.
+    exclude: ['e2e/**', '**/node_modules/**'],
   },
   server: {
     proxy: {

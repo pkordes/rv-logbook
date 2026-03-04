@@ -58,6 +58,17 @@ Desktop.ini
 
 .idea/
 *.swp
+
+# ---------------------------------------------------------------------------
+# Playwright
+# ---------------------------------------------------------------------------
+
+# Test result artifacts and HTML report — generated on each run, not committed.
+frontend/test-results/
+frontend/playwright-report/
+
+# Local Playwright state (last run results, used by VS Code extension)
+frontend/.playwright/
 *.swo
 
 # ---------------------------------------------------------------------------
