@@ -1,0 +1,115 @@
+# Main-tier CI — Playwright E2E tests.
+# Triggers: push to main only (post-merge).
+#
+# Rationale for Main tier (not PR tier):
+#   - Requires full stack: Postgres service container + Go backend + Vite dev server.
+#   - Spin-up cost (~3-5 min) is acceptable post-merge but too slow for every PR push.
+#   - Goal: confirm the integrated state on main is releasable after merge.
+#   - See CONTRIBUTING.md § "CI Pipeline Tiers" for the full tier rationale.
+#
+# Stack wiring:
+#   1. Postgres starts as a service container (health-checked before steps run).
+#   2. Go binary is built and migrations are applied.
+#   3. Backend binary starts in the background; a curl loop waits for /healthz.
+#   4. `npx playwright test` is invoked — playwright.config.ts starts the Vite
+#      dev server automatically via `webServer`, which proxies /api → :8080.
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  e2e:
+    name: Playwright / Trip Lifecycle
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rvlogbook
+          POSTGRES_PASSWORD: rvlogbook
+          POSTGRES_DB: rvlogbook
+        ports:
+          - 5432:5432
+        options: >
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Go backend ──────────────────────────────────────────────────────────
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # Build the binary once and reuse it — faster than `go run` at test time.
+      - name: Build backend
+        run: cd backend && go build -o bin/api ./cmd/api
+
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgres://rvlogbook:rvlogbook@localhost:5432/rvlogbook?sslmode=disable
+        run: goose -dir backend/migrations postgres "$DATABASE_URL" up
+
+      # Start the backend in the background.  LOG_LEVEL=warn suppresses INFO
+      # noise in the CI log while still surfacing errors.
+      - name: Start backend
+        env:
+          DATABASE_URL: postgres://rvlogbook:rvlogbook@localhost:5432/rvlogbook?sslmode=disable
+          PORT: 8080
+          LOG_LEVEL: warn
+        run: ./backend/bin/api &
+
+      # Poll /healthz rather than sleeping a fixed duration — fails fast if the
+      # binary crashes on startup instead of waiting the full timeout.
+      - name: Wait for backend to be ready
+        run: |
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:8080/healthz && echo "Backend ready" && break
+            echo "Waiting for backend... ($i/20)"
+            sleep 1
+          done
+
+      # ── Node / Playwright ──────────────────────────────────────────────────
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # Install only Chromium — sufficient for portfolio CI; keeps download ~200 MB.
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        working-directory: frontend
+        run: npx playwright test
+
+      # Always upload the HTML report — provides a visual trace of failures
+      # even when the test run itself exits with a non-zero code.
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
