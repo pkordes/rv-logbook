@@ -56,9 +56,15 @@ test.describe('Trip lifecycle', () => {
     await tripLink.click()
     await expect(page.getByRole('heading', { name: tripName })).toBeVisible()
 
-    // ── 4. Add a stop ────────────────────────────────────────────────────────
+    // ── 4. Add a stop with a tag ────────────────────────────────────────────
     await page.getByLabel('Stop Name').fill(stopName)
     await page.getByLabel('Arrived At').fill('2025-06-02')
+    // Type into TagInput (aria-label="Add tag") and press Enter to commit the
+    // tag as a pill.  The pill's remove button is the most stable assertion
+    // handle — it carries aria-label="Remove camping".
+    await page.getByLabel('Add tag').fill('camping')
+    await page.getByLabel('Add tag').press('Enter')
+    await expect(page.getByRole('button', { name: 'Remove camping' })).toBeVisible()
     await page.getByTestId('stop-form-submit').click()
 
     // Wait for the stop to appear in the list — the Edit button is the most
@@ -66,6 +72,9 @@ test.describe('Trip lifecycle', () => {
     await expect(
       page.getByRole('button', { name: `Edit ${stopName}` }),
     ).toBeVisible()
+    // The TagPill is also rendered in the stop row — confirms the tag was
+    // persisted and re-fetched correctly by TanStack Query.
+    await expect(page.getByRole('button', { name: 'Remove camping' })).toBeVisible()
 
     // ── 5. Switch to timeline view and verify the stop is rendered ────────────
     await page.getByTestId('view-toggle-timeline').click()
@@ -99,5 +108,69 @@ test.describe('Trip lifecycle', () => {
 
     await page.getByRole('button', { name: `Delete ${tripName}` }).click()
     await expect(page.getByRole('link', { name: tripName })).not.toBeVisible()
+  })
+})
+
+/**
+ * Tags management journey.
+ *
+ * Exercises the full CRUD lifecycle on the /tags page:
+ *
+ *   CREATE TAG → RENAME TAG → DELETE TAG
+ *
+ * Runs independently of the trip lifecycle test — no shared state between
+ * the two describe blocks.  Uses a timestamped name so re-runs against a
+ * non-empty database don't collide with tags left from prior runs.
+ *
+ * This test exercises every per-row identifier added in fix/e2e-testability:
+ *   aria-label="Edit {name}"          → open rename form
+ *   aria-label="Rename tag"           → rename input (getByLabel)
+ *   aria-label="Save tag name"        → confirm rename
+ *   aria-label="Delete {newName}"     → open delete confirmation
+ *   aria-label="Confirm delete {…}"   → confirm deletion
+ *   data-testid="tag-form-submit"     → create form submit
+ */
+test.describe('Tags management', () => {
+  const tagName = `e2e-tag-${Date.now()}`
+  const renamedName = `${tagName}-renamed`
+
+  test('create tag → rename tag → delete tag', async ({ page }) => {
+    // ── 1. Navigate to tags page ──────────────────────────────────────────────
+    await page.goto('/tags')
+    await expect(page.getByRole('heading', { name: 'Tags' })).toBeVisible()
+
+    // ── 2. Create a tag ───────────────────────────────────────────────────────
+    // See CONTRIBUTING.md § "E2E Testability" for the selector strategy.
+    await page.getByLabel('New tag name').fill(tagName)
+    await page.getByTestId('tag-form-submit').click()
+
+    // Wait for the new row — the Edit button carries the tag name so its
+    // presence proves both that the row rendered AND the name is correct.
+    await expect(page.getByRole('button', { name: `Edit ${tagName}` })).toBeVisible()
+
+    // ── 3. Rename the tag ─────────────────────────────────────────────────────
+    await page.getByRole('button', { name: `Edit ${tagName}` }).click()
+    // Inline rename input replaces the tag name cell.
+    const renameInput = page.getByLabel('Rename tag')
+    await renameInput.clear()
+    await renameInput.fill(renamedName)
+    await page.getByRole('button', { name: 'Save tag name' }).click()
+
+    // The row should now show the new name; the old name should be gone.
+    await expect(page.getByRole('button', { name: `Edit ${renamedName}` })).toBeVisible()
+    await expect(page.getByRole('button', { name: `Edit ${tagName}` })).not.toBeVisible()
+
+    // ── 4. Delete the tag ─────────────────────────────────────────────────────
+    await page.getByRole('button', { name: `Delete ${renamedName}` }).click()
+    // Inline confirmation row — assert it appeared before clicking to confirm.
+    await expect(
+      page.getByRole('button', { name: `Confirm delete ${renamedName}` }),
+    ).toBeVisible()
+    await page.getByRole('button', { name: `Confirm delete ${renamedName}` }).click()
+
+    // The row should be gone.
+    await expect(
+      page.getByRole('button', { name: `Delete ${renamedName}` }),
+    ).not.toBeVisible()
   })
 })

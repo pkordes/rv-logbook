@@ -113,3 +113,14 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report/
           retention-days: 14
+
+      # Screenshots are captured on failure (screenshot: 'only-on-failure' in
+      # playwright.config.ts).  Upload them separately so they are immediately
+      # visible in the Actions summary without needing to open the full report.
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots
+          path: frontend/test-results/
+          retention-days: 14

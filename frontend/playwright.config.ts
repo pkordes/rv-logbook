@@ -38,6 +38,9 @@ export default defineConfig({
     // Capture a full execution trace on the first retry so failures can be
     // diagnosed by downloading the artifact from the CI run.
     trace: 'on-first-retry',
+    // Capture a screenshot at the moment of failure — faster to scan than
+    // opening a full trace when the failure cause is obvious from the UI.
+    screenshot: 'only-on-failure',
   },
 
   projects: [
