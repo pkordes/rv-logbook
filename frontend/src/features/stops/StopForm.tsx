@@ -6,10 +6,18 @@ import type { Stop } from '../../api/stops'
 import { TagInput } from '../../components/TagInput'
 
 /**
- * Converts a YYYY-MM-DD date string to a midnight UTC RFC 3339 timestamp.
- * The backend requires date-time format; for a logbook the day is what matters.
+ * Converts a YYYY-MM-DD date string to an RFC 3339 timestamp representing
+ * noon Eastern Standard Time (UTC−5 = T17:00:00Z).
+ *
+ * Why noon EST?
+ * JavaScript's `new Date("YYYY-MM-DD")` treats plain date strings as UTC midnight
+ * (T00:00:00Z). In any US timezone that moment falls on the *previous* calendar
+ * day (e.g. midnight UTC = 7 PM EST the night before). Using noon EST (17:00 UTC)
+ * means the stored instant is solidly within the entered day from Hawaii (UTC−10,
+ * 7 AM) to Maine (UTC−5, 12 PM) and will never roll back to the day before when
+ * displayed in any US locale.
  */
-const dateToRfc3339 = (val: string) => `${val}T00:00:00Z`
+const dateToRfc3339 = (val: string) => `${val}T17:00:00Z`
 
 /** Internal Zod schema — validates raw form field strings. */
 const stopFormSchema = z.object({
