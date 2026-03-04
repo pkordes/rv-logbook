@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { StopList } from '../features/stops/StopList'
 import { StopForm, type StopFormValues } from '../features/stops/StopForm'
+import { TripTimeline } from '../features/trips/TripTimeline'
+import { ExportButton } from '../features/trips/ExportButton'
 import { useTrip } from '../features/trips/useTripQueries'
 import { useStops, useDeleteStop, stopKeys } from '../features/stops/useStopQueries'
 import { createStop, updateStop, addTagToStop, removeTagFromStop } from '../api/stops'
@@ -44,6 +46,7 @@ export function TripDetailPage() {
   const [editingStop, setEditingStop] = useState<Stop | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  const [view, setView] = useState<'list' | 'timeline'>('list')
 
   async function handleAddStop(values: StopFormValues) {
     setIsAdding(true)
@@ -133,14 +136,45 @@ export function TripDetailPage() {
       </p>
 
       {/* Trip header */}
-      <h1 className="text-2xl font-bold mb-1">{tripData.name}</h1>
-      <p className="text-sm text-gray-500 mb-6">
-        Started: {tripData.start_date}
-        {tripData.end_date && ` · Ended: ${tripData.end_date}`}
-      </p>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">{tripData.name}</h1>
+          <p className="text-sm text-gray-500">
+            Started: {tripData.start_date}
+            {tripData.end_date && ` · Ended: ${tripData.end_date}`}
+          </p>
+        </div>
+        <ExportButton />
+      </div>
 
-      {/* Stops */}
-      <h2 className="text-lg font-semibold mb-2">Stops</h2>
+      {/* Stops header + view toggle */}
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-lg font-semibold">Stops</h2>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            className={`rounded px-3 py-1 text-sm ${
+              view === 'list'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            List
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('timeline')}
+            className={`rounded px-3 py-1 text-sm ${
+              view === 'timeline'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Timeline
+          </button>
+        </div>
+      </div>
 
       {deleteStop.isError && (
         <p className="mb-3 text-sm text-red-600">
@@ -163,12 +197,15 @@ export function TripDetailPage() {
       {stops.isError && (
         <p className="text-red-600 py-2">Failed to load stops.</p>
       )}
-      {!stops.isLoading && !stops.isError && (
+      {!stops.isLoading && !stops.isError && view === 'list' && (
         <StopList
           stops={stops.data?.data ?? []}
           onDelete={(id) => deleteStop.mutate(id)}
           onEdit={(stop) => setEditingStop(stop)}
         />
+      )}
+      {!stops.isLoading && !stops.isError && view === 'timeline' && (
+        <TripTimeline stops={stops.data?.data ?? []} />
       )}
 
       {editingStop ? (
