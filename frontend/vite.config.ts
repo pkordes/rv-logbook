@@ -1,10 +1,18 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      // '@/' maps to 'src/' — mirrors the tsconfig.app.json paths entry.
+      // Required by shadcn/ui components which import as '@/lib/utils' etc.
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   test: {
     // Run tests in a browser-like environment so window, fetch, etc. exist.
     // 'jsdom' is the standard choice for React component tests.
