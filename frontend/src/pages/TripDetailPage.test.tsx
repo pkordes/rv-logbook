@@ -257,4 +257,64 @@ describe('TripDetailPage', () => {
     // National Park was kept — it should not be re-added or removed
     expect(stopsApi.addTagToStop).not.toHaveBeenCalled();
   });
+
+  // ---------------------------------------------------------------------------
+  // Phase 14 — Timeline tab toggle
+  // ---------------------------------------------------------------------------
+
+  it('renders List and Timeline tab buttons', () => {
+    renderPage();
+    expect(screen.getByRole('button', { name: /^list$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^timeline$/i })).toBeInTheDocument();
+  });
+
+  it('shows the stop list by default (List tab is active)', () => {
+    vi.spyOn(stopQueries, 'useStops').mockReturnValue({
+      data: { data: [mockStop], pagination: { page: 1, limit: 20, total: 1 } },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof stopQueries.useStops>);
+
+    renderPage();
+    // StopList renders an edit button for each stop; Timeline does not
+    expect(screen.getByRole('button', { name: /edit yellowstone camp/i })).toBeInTheDocument();
+  });
+
+  it('switches to the timeline view when the Timeline tab is clicked', async () => {
+    vi.spyOn(stopQueries, 'useStops').mockReturnValue({
+      data: { data: [mockStop], pagination: { page: 1, limit: 20, total: 1 } },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof stopQueries.useStops>);
+
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /^timeline$/i }));
+
+    // StopList edit button disappears; stop name is still visible via timeline
+    expect(screen.queryByRole('button', { name: /edit yellowstone camp/i })).not.toBeInTheDocument();
+    expect(screen.getByTestId('timeline-stop-name')).toHaveTextContent('Yellowstone Camp');
+  });
+
+  it('returns to list view when the List tab is clicked after switching to Timeline', async () => {
+    vi.spyOn(stopQueries, 'useStops').mockReturnValue({
+      data: { data: [mockStop], pagination: { page: 1, limit: 20, total: 1 } },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof stopQueries.useStops>);
+
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /^timeline$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^list$/i }));
+
+    expect(screen.getByRole('button', { name: /edit yellowstone camp/i })).toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 15 — Export button
+  // ---------------------------------------------------------------------------
+
+  it('renders an Export CSV button', () => {
+    renderPage();
+    expect(screen.getByRole('button', { name: /export csv/i })).toBeInTheDocument();
+  });
 });
