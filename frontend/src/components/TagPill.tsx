@@ -19,7 +19,7 @@ interface TagPillProps {
  */
 export function TagPill({ name, onRemove }: TagPillProps) {
   return (
-    <Badge variant="secondary" className="gap-1">
+    <Badge variant="default" className="gap-1">
       {name}
       {onRemove !== undefined && (
         <button
