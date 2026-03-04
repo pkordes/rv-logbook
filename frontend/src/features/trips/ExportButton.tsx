@@ -1,0 +1,58 @@
+import { useState } from 'react'
+import { fetchExportBlob } from '../../api/export'
+
+/**
+ * ExportButton triggers a browser file download of the full trip/stop data.
+ *
+ * The download mechanism:
+ *   1. Fetch the export endpoint → get a Blob
+ *   2. Create a temporary object URL from the Blob
+ *   3. Programmatically click a hidden <a download="…"> element
+ *   4. Revoke the object URL to free memory
+ *
+ * This is the standard browser pattern for fetch-to-download without a
+ * server-side redirect — equivalent to saving a file from a stream in backend code.
+ */
+export function ExportButton() {
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleExport() {
+    setIsPending(true)
+    setError(null)
+    try {
+      const blob = await fetchExportBlob('csv')
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objectUrl
+      a.download = 'rv-logbook-export.csv'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objectUrl)
+    } catch {
+      setError('Export failed. Please try again.')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => void handleExport()}
+        disabled={isPending}
+        aria-busy={isPending}
+        className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+      >
+        Export CSV
+      </button>
+      {error !== null && (
+        <p className="mt-1 text-xs text-red-600" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}

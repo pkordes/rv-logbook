@@ -8,11 +8,11 @@ afterEach(() => {
 describe('fetchExportBlob', () => {
   it('calls GET /export with Accept: application/json by default', async () => {
     const blob = new Blob(['[{}]'], { type: 'application/json' })
+    // Use a plain mock object — new Response(blob, ...) triggers blob.stream()
+    // which is not implemented in jsdom.
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(blob, { status: 200, headers: { 'Content-Type': 'application/json' } }),
-      ),
+      vi.fn().mockResolvedValue({ ok: true, blob: () => Promise.resolve(blob) }),
     )
 
     const result = await fetchExportBlob('json')
@@ -28,9 +28,7 @@ describe('fetchExportBlob', () => {
     const blob = new Blob(['trip,stop\n'], { type: 'text/csv' })
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(blob, { status: 200, headers: { 'Content-Type': 'text/csv' } }),
-      ),
+      vi.fn().mockResolvedValue({ ok: true, blob: () => Promise.resolve(blob) }),
     )
 
     await fetchExportBlob('csv')
@@ -44,7 +42,7 @@ describe('fetchExportBlob', () => {
   it('throws when the server responds with a non-2xx status', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(new Response('Internal Server Error', { status: 500 })),
+      vi.fn().mockResolvedValue({ ok: false, status: 500 }),
     )
 
     await expect(fetchExportBlob('json')).rejects.toThrow()
