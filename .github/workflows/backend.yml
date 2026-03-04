@@ -40,3 +40,11 @@ jobs:
       - name: Test (unit)
         run: make backend/test/unit
 
+      # gosec performs static analysis on Go source for security anti-patterns:
+      # hardcoded credentials, SQL injection vectors, unsafe syscall usage, etc.
+      # It is fast (< 5 s on this codebase) so it belongs at the branch tier.
+      - name: Security scan (gosec)
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -exclude-dir=internal/handler/gen ./...
+
