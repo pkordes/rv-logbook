@@ -11,7 +11,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 export function RootLayout() {
   return (
     <div>
-      <nav>
+      <nav aria-label="Main navigation">
         <NavLink to="/">Home</NavLink>
         {' | '}
         <NavLink to="/trips">Trips</NavLink>

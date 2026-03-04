@@ -116,7 +116,14 @@ export function TagInput({ value, onChange }: TagInputProps) {
                 key={tag.slug}
                 role="option"
                 aria-selected={false}
+                tabIndex={0}
                 onClick={() => addTag(tag.name)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    addTag(tag.name)
+                  }
+                }}
                 className="cursor-pointer px-3 py-1.5 text-sm hover:bg-indigo-50"
               >
                 {tag.name}

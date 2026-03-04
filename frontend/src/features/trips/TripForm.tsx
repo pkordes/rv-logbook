@@ -113,6 +113,7 @@ export function TripForm({ onSubmit, isSubmitting }: TripFormProps) {
 
       <button
         type="submit"
+        data-testid="trip-form-submit"
         disabled={isSubmitting}
         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
       >
