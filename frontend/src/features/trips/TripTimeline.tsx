@@ -15,7 +15,12 @@ function formatDate(iso: string | null | undefined): string {
   if (!iso) return 'Unknown date'
   const d = new Date(iso)
   if (isNaN(d.getTime())) return 'Unknown date'
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  // Use timeZone: 'UTC' so the date printed matches the date portion of the
+  // stored ISO string regardless of the reader's local timezone.  Without this,
+  // a timestamp stored at T17:00:00Z (noon EST) would display correctly for US
+  // users but could roll to the next day for UTC+8 readers — UTC rendering is
+  // the safest neutral choice for a date-only logbook field.
+  return d.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 /**

@@ -186,7 +186,7 @@ describe('TripDetailPage', () => {
     await waitFor(() => expect(stopsApi.createStop).toHaveBeenCalledOnce());
     expect(stopsApi.createStop).toHaveBeenCalledWith(
       TRIP_ID,
-      expect.objectContaining({ name: 'Firehole Camp', arrived_at: '2025-07-01T00:00:00Z' }),
+      expect.objectContaining({ name: 'Firehole Camp', arrived_at: '2025-07-01T17:00:00Z' }),
     );
     expect(stopsApi.addTagToStop).toHaveBeenCalledTimes(2);
     expect(stopsApi.addTagToStop).toHaveBeenCalledWith(TRIP_ID, createdStop.id, { name: 'camping' });
@@ -217,7 +217,7 @@ describe('TripDetailPage', () => {
     expect(stopsApi.updateStop).toHaveBeenCalledWith(
       TRIP_ID,
       mockStop.id,
-      expect.objectContaining({ name: 'Yellowstone Camp', arrived_at: '2025-06-02T00:00:00Z' }),
+      expect.objectContaining({ name: 'Yellowstone Camp', arrived_at: '2025-06-02T17:00:00Z' }),
     );
     expect(stopsApi.addTagToStop).toHaveBeenCalledOnce();
     expect(stopsApi.addTagToStop).toHaveBeenCalledWith(TRIP_ID, mockStop.id, { name: 'wildlife' });

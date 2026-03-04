@@ -64,7 +64,7 @@ describe('StopForm', () => {
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Yellowstone Camp',
-        arrived_at: '2025-06-02T00:00:00Z',
+        arrived_at: '2025-06-02T17:00:00Z',
       }),
     );
   });
