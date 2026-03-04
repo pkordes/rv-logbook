@@ -84,6 +84,7 @@ func main() {
 	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.NewSlogLogger(logger))
 	r.Use(chimiddleware.Recoverer)
+	r.Use(middleware.NewSecurityHeadersHandler())
 	r.Use(middleware.NewCORSHandler(cfg.CORSOrigins))
 	r.Use(middleware.NewMaxBodySizeHandler(cfg.MaxBodyBytes))
 
@@ -166,6 +167,9 @@ const scalarHTML = `<!doctype html>
     <script
       id="api-reference"
       data-url="/openapi.yaml"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.47.0/dist/browser/standalone.min.js"
+      integrity="sha384-6kjDyToQJPkx17DVSAYYppUPzRFTedx6+Ll/HL3EDCQ5/VdQ01X3Bd4XnAGLRsA/"
+      crossorigin="anonymous"></script>
   </body>
 </html>`
