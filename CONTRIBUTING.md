@@ -31,9 +31,15 @@ go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 go install github.com/oasdiff/oasdiff@latest
 go install honnef.co/go/tools/cmd/staticcheck@latest
 go install gotest.tools/gotestsum@latest
+go install github.com/securego/gosec/v2/cmd/gosec@latest
+go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
 
 `gotestsum` replaces bare `go test` for `make backend/test`. It produces a readable per-package summary and a pass/fail count. All `go test` flags (e.g. `-race`, `-count=1`) are passed through after `--`.
+
+`gosec` is the static security analyzer. Run it manually with `gosec -exclude-dir=internal/handler/gen ./...` from `backend/`. It runs automatically on every branch push via CI.
+
+`govulncheck` scans Go modules against the Go vulnerability database. Run it manually with `govulncheck ./...` from `backend/`. It runs automatically on every PR via CI.
 
 ### VS Code Extensions (recommended)
 
@@ -414,14 +420,16 @@ This rule applies to `src/**/*.{ts,tsx}` and is excluded from test files
 - **Feature branches** — required from Phase 1 onward. Branch from `main`,
   name as `feat/short-description` or `fix/short-description`.
 - **CI is tiered** — `backend.yml` / `frontend.yml` run fast checks on every branch
-  push (vet, build, unit tests, lint). `backend-pr.yml` / `frontend-pr.yml` run
-  those same checks *plus* PR-only gates (oasdiff, and integration tests in Phase 8)
-  when a PR targets `main`.
-- **PRs require CI to pass** — lint, unit tests, and the `oasdiff` breaking-change
-  check must all be green before merging.
+  push (vet, build, unit tests, lint, gosec, npm audit). `backend-pr.yml` / `frontend-pr.yml`
+  run those same checks *plus* PR-only gates (oasdiff, integration tests, govulncheck,
+  CodeQL) when a PR targets `main`.
+- **PRs require CI to pass** — lint, unit tests, oasdiff, govulncheck, and CodeQL
+  must all be green before merging.
 - **Breaking API changes** — if you intentionally change the OpenAPI contract in a
   breaking way, the PR description must explicitly acknowledge it. The `oasdiff`
   CI gate will fail and must be overridden deliberately.
+- **Dependabot** is enabled for Go modules, npm, and GitHub Actions. Automated
+  dependency update PRs appear weekly on Monday.
 
 ---
 

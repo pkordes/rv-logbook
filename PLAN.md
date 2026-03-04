@@ -541,14 +541,14 @@ Each step follows this sequence:
 > Goal: Someone landing on the repo should immediately understand what it is,
 > how to run it, and what makes it interesting. This is your pitch.
 
-- [ ] **20.1** Rewrite `README.md` with: project summary, feature list, tech choices
+- [x] **20.1** Rewrite `README.md` with: project summary, feature list, tech choices
        (with one-line rationale for each), and a "What I'd do with more time" section
-- [ ] **20.2** Add `docs/architecture.md` with layer diagram and data model ERD
-- [ ] **20.3** Add `docs/adr/` — at least two Architecture Decision Records:
+- [x] **20.2** Add `docs/architecture.md` with layer diagram and data model ERD
+- [x] **20.3** Add `docs/adr/` — at least two Architecture Decision Records:
        one for the layered backend, one for TanStack Query vs Redux
-- [ ] **20.4** Final `make lint` and `make test` — everything green
+- [x] **20.4** Final `make lint` and `make test` — everything green
 - [ ] **20.5** Tag `v1.0.0`
-- [ ] **20.6** Commit: `docs: portfolio-ready README and architecture docs`
+- [x] **20.6** Commit: `docs: portfolio-ready README and architecture docs`
 
 ---
 
