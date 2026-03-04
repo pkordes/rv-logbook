@@ -102,6 +102,7 @@ export function TagsPage() {
         />
         <button
           type="submit"
+          data-testid="tag-form-submit"
           disabled={createTag.isPending || newTagName.trim() === ''}
           className="rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
@@ -110,12 +111,12 @@ export function TagsPage() {
       </form>
 
       {updateTag.isError && (
-        <p className="mb-4 text-sm text-red-600">
+        <p role="alert" className="mb-4 text-sm text-red-600">
           Failed to rename tag: {updateTag.error?.message ?? 'Unknown error'}
         </p>
       )}
       {deleteTag.isError && (
-        <p className="mb-4 text-sm text-red-600">
+        <p role="alert" className="mb-4 text-sm text-red-600">
           Failed to delete tag: {deleteTag.error?.message ?? 'Unknown error'}
         </p>
       )}
@@ -153,6 +154,7 @@ export function TagsPage() {
                   {editingSlug === tag.slug ? (
                     <span className="flex gap-2">
                       <button
+                        aria-label="Save tag name"
                         onClick={() => saveEdit(tag.slug)}
                         disabled={updateTag.isPending}
                         className="text-sm text-blue-600 hover:underline"
@@ -160,6 +162,7 @@ export function TagsPage() {
                         Save
                       </button>
                       <button
+                        aria-label="Cancel renaming tag"
                         onClick={cancelEdit}
                         className="text-sm text-gray-500 hover:underline"
                       >
@@ -172,6 +175,7 @@ export function TagsPage() {
                         This will remove it from all stops.
                       </span>
                       <button
+                        aria-label={`Confirm delete ${tag.name}`}
                         onClick={() => confirmDelete(tag.slug)}
                         disabled={deleteTag.isPending}
                         className="text-sm text-red-600 font-semibold hover:underline"
@@ -179,6 +183,7 @@ export function TagsPage() {
                         Confirm delete
                       </button>
                       <button
+                        aria-label={`Keep ${tag.name}`}
                         onClick={cancelDelete}
                         className="text-sm text-gray-500 hover:underline"
                       >
@@ -188,12 +193,14 @@ export function TagsPage() {
                   ) : (
                     <span className="flex gap-2">
                       <button
+                        aria-label={`Edit ${tag.name}`}
                         onClick={() => startEdit(tag.slug, tag.name)}
                         className="text-sm text-blue-600 hover:underline"
                       >
                         Edit
                       </button>
                       <button
+                        aria-label={`Delete ${tag.name}`}
                         onClick={() => requestDelete(tag.slug)}
                         disabled={deleteTag.isPending}
                         className="text-sm text-red-600 hover:underline"

@@ -153,6 +153,7 @@ export function TripDetailPage() {
         <div className="flex gap-1">
           <button
             type="button"
+            data-testid="view-toggle-list"
             onClick={() => setView('list')}
             className={`rounded px-3 py-1 text-sm ${
               view === 'list'
@@ -164,6 +165,7 @@ export function TripDetailPage() {
           </button>
           <button
             type="button"
+            data-testid="view-toggle-timeline"
             onClick={() => setView('timeline')}
             className={`rounded px-3 py-1 text-sm ${
               view === 'timeline'
@@ -177,18 +179,18 @@ export function TripDetailPage() {
       </div>
 
       {deleteStop.isError && (
-        <p className="mb-3 text-sm text-red-600">
+        <p role="alert" className="mb-3 text-sm text-red-600">
           Failed to delete stop: {deleteStop.error?.message ?? 'Unknown error'}
         </p>
       )}
       {addError && (
-        <p className="mb-3 text-sm text-red-600">
+        <p role="alert" className="mb-3 text-sm text-red-600">
           Failed to add stop: {addError}
         </p>
       )}
 
       {editError && (
-        <p className="mb-3 text-sm text-red-600">
+        <p role="alert" className="mb-3 text-sm text-red-600">
           Failed to save changes: {editError}
         </p>
       )}

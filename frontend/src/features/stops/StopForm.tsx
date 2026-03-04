@@ -212,9 +212,12 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
 
       {/* Tags */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        {/* Using <span> instead of <label> because TagInput manages its own
+            aria-label ("Add tag") internally — a floating <label> with no
+            htmlFor association would be an a11y violation. */}
+        <span className="block text-sm font-medium text-gray-700">
           Tags
-        </label>
+        </span>
         <Controller
           name="tags"
           control={control}
@@ -226,6 +229,7 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
 
       <button
         type="submit"
+        data-testid="stop-form-submit"
         disabled={isSubmitting}
         className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
       >
@@ -234,6 +238,7 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
       {isEditing && onCancel && (
         <button
           type="button"
+          aria-label="Cancel editing stop"
           onClick={onCancel}
           className="ml-2 rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
         >

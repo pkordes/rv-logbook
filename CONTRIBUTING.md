@@ -193,6 +193,7 @@ make frontend/test   # single run
 | `@testing-library/user-event` | Simulate real user interactions (click, type) |
 | `jsdom` | Simulates a browser DOM in Node.js so tests run without a real browser |
 | `zod` | Runtime schema validation — parses and validates API responses at the boundary |
+| `eslint-plugin-jsx-a11y` | ESLint plugin — enforces ARIA and accessibility rules at lint time (see § E2E Testability) |
 
 ### The `vi.stubGlobal` pattern
 
@@ -249,6 +250,114 @@ before commit.
 > new files are created by tooling. `make frontend/lint` is authoritative — if it
 > passes, the code is correct. Use **Ctrl+Shift+P → TypeScript: Restart TS Server**
 > to refresh the editor display.
+
+---
+
+## E2E Testability
+
+This section is the contract every UI element must satisfy before it can be committed.
+It applies equally to new components and to changes that add interactive elements to
+existing components.
+
+### Why this matters
+
+E2E tests (Playwright) find elements on a live page. There are many ways to locate
+an element — by CSS class, by position, by text content, by semantic role. Most of
+these break the moment a designer renames text, changes a class, or moves an element.
+The approaches below are the only ones that survive both.
+
+### The selector priority hierarchy
+
+Use the highest applicable level for each element. Do not skip levels. Do not add
+redundant identifiers at multiple levels.
+
+| Priority | Playwright selector | When to use |
+|---|---|---|
+| 1 | `getByRole()` | Element has semantic meaning AND a computable name (button with aria-label, input with label, heading) |
+| 2 | `getByLabel()` | Form field associated with a `<label>` via `htmlFor` / `id` |
+| 3 | `getByTestId()` | Everything else — submit buttons whose label changes during loading, view toggles, structural containers |
+| 4 | `getByText()` | **Last resort only.** Never for interactive elements or anything that might change. |
+
+CSS class names (`className`) **must never** be used as test selectors. Classes
+belong to styling. Changing a class to fix a visual bug must not break tests.
+These concerns are fully separate.
+
+### What each element type requires
+
+| Element type | Required identifier |
+|---|---|
+| Per-row action button (Edit, Delete) | `aria-label="{Action} {item.name}"` — e.g. `aria-label="Delete camping"` |
+| Submit button with changing text ("Add" → "Saving…") | `data-testid="{resource}-form-submit"` — e.g. `data-testid="trip-form-submit"` |
+| Cancel / secondary form button | `aria-label="Cancel {context}"` or `data-testid="{resource}-form-cancel"` |
+| View / mode toggle button | `data-testid="view-toggle-{mode}"` — e.g. `data-testid="view-toggle-timeline"` |
+| Mutation error message | `role="alert"` (doubles as an accessibility requirement; no testid needed) |
+| Named navigational region | `aria-label` on the `<nav>` landmark element |
+| Form container | `data-testid="{resource}-form"` |
+| Read-only data cell that tests will assert | `data-testid="{resource}-{field}"` — e.g. `data-testid="stop-name"` |
+
+### What `aria-label` is
+
+ARIA (Accessible Rich Internet Applications) is a W3C web standard. `aria-label`
+lets you assign a text description to any element so screen readers can announce it
+to visually impaired users. `aria-label="Delete camping"` tells the browser:
+"this button should be announced as 'Delete camping'". This serves two goals at
+once — accessibility compliance AND a stable test handle. When an element already
+needs an aria-label for accessibility, that label IS the Playwright selector;
+no separate `data-testid` is required.
+
+### `data-testid` naming convention
+
+Format: `{resource}-{element}` or `{resource}-{element}-{qualifier}`
+
+```
+trip-form-submit
+stop-form-cancel
+view-toggle-list
+view-toggle-timeline
+stop-name              (read-only display)
+stop-list-item-{id}   (inside a repeating list — suffix with id or name)
+```
+
+### Automated enforcement — two lint layers
+
+These run as part of `make frontend/lint` (which runs on every branch push in CI).
+An untestable button becomes a **build failure** before the PR is even opened.
+
+**Layer 1 — `eslint-plugin-jsx-a11y` (recommended config)**
+
+Enforces W3C accessibility rules at the AST level. Key rules active:
+
+| Rule | What it catches |
+|---|---|
+| `label-has-associated-control` | `<label>` elements with no `htmlFor`/wrapping association |
+| `interactive-supports-focus` | Clickable elements that aren't keyboard-reachable |
+| `click-events-have-key-events` | Non-native interactive elements (e.g. `<li onClick>`) missing a keyboard handler |
+| `anchor-is-valid` | `<a>` elements with bad or missing `href` |
+
+`no-autofocus` is intentionally disabled — `autoFocus` on inline-edit inputs is a
+deliberate accessibility improvement (keyboard users benefit from focus moving to
+the active field).
+
+**Layer 2 — custom `testability/interactive-has-test-id` rule**
+
+Hand-written ESLint rule in `eslint.config.js`. Fires on any `<button>` element
+that has neither `aria-label` nor `data-testid`. Error message links back to this
+section so developers know exactly what to add.
+
+This rule applies to `src/**/*.{ts,tsx}` and is excluded from test files
+(`src/**/*.test.{ts,tsx}`) where RTL queries do not require testids.
+
+### Rules enforced in code review and by Copilot
+
+1. Every button, input, link, or interactive element must satisfy the table above
+   before the PR is considered ready.
+2. `className` must never appear as a selector in Playwright test files.
+3. `getByText()` is never acceptable for interactive elements.
+4. The first `getByTestId()` call in each Playwright test file must carry the comment:
+   `// See CONTRIBUTING.md § "E2E Testability" for the selector strategy.`
+5. A component that contains an interactive element not covered by priority 1 or 2
+   must include the `data-testid` in the **same commit** as the component — never
+   as a follow-up.
 
 ---
 

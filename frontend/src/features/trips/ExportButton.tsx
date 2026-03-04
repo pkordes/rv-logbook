@@ -41,6 +41,7 @@ export function ExportButton() {
     <div>
       <button
         type="button"
+        aria-label="Export CSV"
         onClick={() => void handleExport()}
         disabled={isPending}
         aria-busy={isPending}
