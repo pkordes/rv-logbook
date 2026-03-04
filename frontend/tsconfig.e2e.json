@@ -1,0 +1,14 @@
+{
+  // E2E test config — extends the Node config (ESNext, strict) but replaces
+  // vitest types with @playwright/test types and includes the e2e directory.
+  //
+  // Referenced by tsconfig.json so `make frontend/lint` (tsc --noEmit) also
+  // type-checks Playwright specs alongside the app source.
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.e2e.tsbuildinfo",
+    // Playwright types replace vitest/globals here.
+    "types": ["node", "@playwright/test"]
+  },
+  "include": ["e2e", "playwright.config.ts"]
+}

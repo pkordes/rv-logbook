@@ -134,6 +134,7 @@ all requests appear to the browser as same-origin (`localhost:5173`).
 | `make db/migrate` | Apply pending migrations (`goose up`) |
 | `make db/rollback` | Roll back last migration (`goose down`) |
 | `make db/reset` | Wipe dev DB and re-apply all migrations |
+| `make e2e` | Run Playwright E2E tests (see prerequisites below) |
 
 ---
 
@@ -250,6 +251,51 @@ before commit.
 > new files are created by tooling. `make frontend/lint` is authoritative — if it
 > passes, the code is correct. Use **Ctrl+Shift+P → TypeScript: Restart TS Server**
 > to refresh the editor display.
+
+---
+
+## E2E Testing (Playwright)
+
+### Prerequisites
+
+The E2E tests exercise the full running stack. Before running `make e2e`:
+
+1. **Postgres must be running:** `make db/up && make db/migrate`
+2. **Backend must be running:** `make backend/run` in a separate terminal
+
+Playwright starts the Vite dev server automatically via the `webServer` entry in
+`playwright.config.ts`. Vite's proxy (configured in `vite.config.ts`) forwards `/api/*`
+to the backend on port 8080, so the browser sees a single origin.
+
+### Running
+
+```bash
+make e2e             # run all specs
+npx playwright test --ui   # interactive UI mode for debugging (from frontend/)
+```
+
+### Test isolation
+
+The journey test creates a uniquely-named trip on each run (timestamped name). If
+a test run fails mid-way and leaves data in the database, re-running `make e2e`
+creates new rows alongside the leftovers — this is safe and expected.
+
+### CI placement
+
+E2E lives in the **Main tier** (`.github/workflows/e2e.yml`), triggered on push to
+`main` only. Rationale: the test requires the full stack (Postgres + Go + Vite) which
+adds ~3-5 min of spin-up; this cost is acceptable post-merge but too slow for every
+PR push. See § CI Pipeline Tiers for the full tier rationale.
+
+### Selector strategy
+
+All Playwright locators use the hierarchy defined in § E2E Testability above:
+`getByLabel()` for form fields, `getByRole()` for semantic/ARIA elements,
+`getByTestId()` for structural/state-changing elements. The first `getByTestId()`
+call in each spec file carries the cross-reference comment:
+```typescript
+// See CONTRIBUTING.md § "E2E Testability" for the selector strategy.
+```
 
 ---
 

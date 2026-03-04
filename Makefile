@@ -31,7 +31,8 @@ GOOSE        := goose
 		backend/test/service backend/test/handler \
 		backend/lint backend/generate \
         frontend/dev frontend/build frontend/test frontend/lint frontend/generate \
-        db/up db/down db/migrate db/rollback db/reset
+        db/up db/down db/migrate db/rollback db/reset \
+        e2e
 
 # ---------------------------------------------------------------------------
 # help — self-documenting target list
@@ -58,6 +59,9 @@ help: ## Show this help message
 	$(info     make frontend/test      Run Vitest unit tests)
 	$(info     make frontend/lint      Run ESLint + TypeScript type-check)
 	$(info     make frontend/generate  Regenerate TypeScript types from openapi.yaml)
+	$(info )
+	$(info   E2E Tests)
+	$(info     make e2e               Run Playwright E2E tests (requires: make db/up && make backend/run in another terminal))
 	$(info )
 	$(info   Database)
 	$(info     make db/up              Start the Postgres container (background))
@@ -177,3 +181,15 @@ db/rollback:
 db/reset:
 	$(GOOSE) -dir $(BACKEND_DIR)/migrations postgres "$(DATABASE_URL)" reset
 	$(GOOSE) -dir $(BACKEND_DIR)/migrations postgres "$(DATABASE_URL)" up
+
+# ---------------------------------------------------------------------------
+# E2E targets
+# ---------------------------------------------------------------------------
+
+## Run Playwright end-to-end tests.
+## Prerequisites (must be running before invoking this target):
+##   make db/up && make db/migrate   (once, to start Postgres and apply schema)
+##   make backend/run                (in a separate terminal)
+## Playwright starts the Vite dev server automatically via playwright.config.ts.
+e2e:
+	npm --prefix $(FRONTEND_DIR) run e2e
