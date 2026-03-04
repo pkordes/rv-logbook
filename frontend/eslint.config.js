@@ -77,13 +77,7 @@ const testabilityPlugin = {
 }
 
 export default defineConfig([
-  // shadcn/ui generates files that intentionally export both components and
-  // utility functions (e.g. buttonVariants, badgeVariants) from the same
-  // module — this is the documented shadcn API for composing styles without
-  // rendering the full component. The react-refresh rule flags these as
-  // violations, but changing the generated files would break the shadcn
-  // update workflow. Treat src/components/ui/ as vendor code.
-  globalIgnores(['dist', 'src/components/ui/**']),
+  globalIgnores(['dist']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -113,6 +107,18 @@ export default defineConfig([
     plugins: { testability: testabilityPlugin },
     rules: {
       'testability/interactive-has-test-id': 'error',
+    },
+  },
+  // shadcn/ui intentionally exports both a component and a variant helper
+  // from the same file (e.g. Button + buttonVariants) so that callers can
+  // compose styles without rendering the full component. This conflicts with
+  // the react-refresh rule, which requires a file to export only components
+  // for reliable hot-module replacement. Only that one rule is relaxed here;
+  // all other rules — including the testability plugin — still apply.
+  {
+    files: ['src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])
