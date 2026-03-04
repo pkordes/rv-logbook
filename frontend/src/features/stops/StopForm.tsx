@@ -135,7 +135,7 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
     <form
       onSubmit={handleSubmit(handleValidSubmit as (data: StopFormInput) => void)}
       noValidate
-      className="mb-8 space-y-4"
+      className="space-y-4"
     >
       {/* Name */}
       <div className="space-y-1.5">

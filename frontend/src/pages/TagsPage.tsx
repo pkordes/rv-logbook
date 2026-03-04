@@ -3,6 +3,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner'
 import { useTags, useUpdateTag, useDeleteTag, useCreateTag } from '../features/tags/useTagQueries'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 /**
  * TagsPage owns the /tags route.
@@ -89,140 +90,155 @@ export function TagsPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Tags</h1>
+    <div className="max-w-xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold tracking-tight">Tags</h1>
 
-      {/* New tag form */}
-      <form onSubmit={handleCreateTag} className="flex gap-2 mb-6">
-        <Input
-          type="text"
-          aria-label="New tag name"
-          value={newTagName}
-          onChange={(e) => setNewTagName(e.target.value)}
-          placeholder="New tag name"
-          className="flex-1"
-        />
-        <Button
-          type="submit"
-          data-testid="tag-form-submit"
-          disabled={createTag.isPending || newTagName.trim() === ''}
-        >
-          Add Tag
-        </Button>
-      </form>
+      {/* New tag card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>New Tag</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreateTag} className="flex gap-2">
+            <Input
+              type="text"
+              aria-label="New tag name"
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+              placeholder="New tag name"
+              className="flex-1"
+            />
+            <Button
+              type="submit"
+              data-testid="tag-form-submit"
+              disabled={createTag.isPending || newTagName.trim() === ''}
+            >
+              Add Tag
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {updateTag.isError && (
-        <p role="alert" className="mb-4 text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive">
           Failed to rename tag: {updateTag.error?.message ?? 'Unknown error'}
         </p>
       )}
       {deleteTag.isError && (
-        <p role="alert" className="mb-4 text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive">
           Failed to delete tag: {deleteTag.error?.message ?? 'Unknown error'}
         </p>
       )}
 
-      {tags.length === 0 ? (
-        <p className="text-gray-500">No tags yet. Add tags to stops to see them here.</p>
-      ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left border-b border-gray-200">
-              <th className="pb-2 font-semibold">Name</th>
-              <th className="pb-2 font-semibold">Slug</th>
-              <th className="pb-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {tags.map((tag) => (
-              <tr key={tag.slug} className="border-b border-gray-100 last:border-0">
-                <td className="py-2 pr-4">
-                  {editingSlug === tag.slug ? (
-                    <Input
-                      type="text"
-                      aria-label="Rename tag"
-                      value={draftName}
-                      onChange={(e) => setDraftName(e.target.value)}
-                      className="h-8 text-sm"
-                      autoFocus
-                    />
-                  ) : (
-                    tag.name
-                  )}
-                </td>
-                <td className="py-2 pr-4 text-gray-500">{tag.slug}</td>
-                <td className="py-2 whitespace-nowrap">
-                  {editingSlug === tag.slug ? (
-                    <span className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label="Save tag name"
-                        onClick={() => saveEdit(tag.slug)}
-                        disabled={updateTag.isPending}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label="Cancel renaming tag"
-                        onClick={cancelEdit}
-                      >
-                        Cancel
-                      </Button>
-                    </span>
-                  ) : pendingDeleteSlug === tag.slug ? (
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm text-destructive">
-                        This will remove it from all stops.
-                      </span>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        aria-label={`Confirm delete ${tag.name}`}
-                        onClick={() => confirmDelete(tag.slug)}
-                        disabled={deleteTag.isPending}
-                      >
-                        Confirm delete
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`Keep ${tag.name}`}
-                        onClick={cancelDelete}
-                      >
-                        Keep
-                      </Button>
-                    </span>
-                  ) : (
-                    <span className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`Edit ${tag.name}`}
-                        onClick={() => startEdit(tag.slug, tag.name)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`Delete ${tag.name}`}
-                        onClick={() => requestDelete(tag.slug)}
-                        disabled={deleteTag.isPending}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        Delete
-                      </Button>
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      {/* Tags table card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Tags</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {tags.length === 0 ? (
+            <p className="text-muted-foreground">No tags yet. Add tags to stops to see them here.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b border-border">
+                  <th className="pb-2 font-semibold">Name</th>
+                  <th className="pb-2 font-semibold">Slug</th>
+                  <th className="pb-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {tags.map((tag) => (
+                  <tr key={tag.slug} className="border-b border-border last:border-0">
+                    <td className="py-2 pr-4">
+                      {editingSlug === tag.slug ? (
+                        <Input
+                          type="text"
+                          aria-label="Rename tag"
+                          value={draftName}
+                          onChange={(e) => setDraftName(e.target.value)}
+                          className="h-8 text-sm"
+                          autoFocus
+                        />
+                      ) : (
+                        tag.name
+                      )}
+                    </td>
+                    <td className="py-2 pr-4 text-muted-foreground">{tag.slug}</td>
+                    <td className="py-2 whitespace-nowrap">
+                      {editingSlug === tag.slug ? (
+                        <span className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Save tag name"
+                            onClick={() => saveEdit(tag.slug)}
+                            disabled={updateTag.isPending}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Cancel renaming tag"
+                            onClick={cancelEdit}
+                          >
+                            Cancel
+                          </Button>
+                        </span>
+                      ) : pendingDeleteSlug === tag.slug ? (
+                        <span className="flex items-center gap-2">
+                          <span className="text-sm text-destructive">
+                            This will remove it from all stops.
+                          </span>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            aria-label={`Confirm delete ${tag.name}`}
+                            onClick={() => confirmDelete(tag.slug)}
+                            disabled={deleteTag.isPending}
+                          >
+                            Confirm delete
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Keep ${tag.name}`}
+                            onClick={cancelDelete}
+                          >
+                            Keep
+                          </Button>
+                        </span>
+                      ) : (
+                        <span className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Edit ${tag.name}`}
+                            onClick={() => startEdit(tag.slug, tag.name)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Delete ${tag.name}`}
+                            onClick={() => requestDelete(tag.slug)}
+                            disabled={deleteTag.isPending}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            Delete
+                          </Button>
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

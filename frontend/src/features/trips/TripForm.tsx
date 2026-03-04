@@ -67,7 +67,7 @@ export function TripForm({ onSubmit, isSubmitting }: TripFormProps) {
     <form
       onSubmit={handleSubmit(handleValidSubmit)}
       noValidate
-      className="mb-8 space-y-4"
+      className="space-y-4"
     >
       <div className="space-y-1.5">
         <Label htmlFor="name">Trip Name</Label>
