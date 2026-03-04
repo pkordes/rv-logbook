@@ -1,6 +1,9 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 /** Zod schema for the new-trip form. Drives both validation and TypeScript types. */
 const tripFormSchema = z.object({
@@ -66,59 +69,51 @@ export function TripForm({ onSubmit, isSubmitting }: TripFormProps) {
       noValidate
       className="mb-8 space-y-4"
     >
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-          Trip Name
-        </label>
-        <input
+      <div className="space-y-1.5">
+        <Label htmlFor="name">Trip Name</Label>
+        <Input
           id="name"
           type="text"
           {...register('name')}
-          className="mt-1 block w-full rounded border-gray-300 shadow-sm"
           placeholder="e.g. Pacific Coast 2024"
         />
         {errors.name && (
-          <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+          <p className="text-sm text-destructive">{errors.name.message}</p>
         )}
       </div>
 
-      <div>
-        <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">
-          Start Date
-        </label>
-        <input
+      <div className="space-y-1.5">
+        <Label htmlFor="start_date">Start Date</Label>
+        <Input
           id="start_date"
           type="text"
           placeholder="YYYY-MM-DD"
           {...register('start_date')}
-          className="mt-1 block w-full rounded border-gray-300 shadow-sm"
         />
         {errors.start_date && (
-          <p className="mt-1 text-sm text-red-600">{errors.start_date.message}</p>
+          <p className="text-sm text-destructive">{errors.start_date.message}</p>
         )}
       </div>
 
-      <div>
-        <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">
-          End Date <span className="text-gray-400">(optional)</span>
-        </label>
-        <input
+      <div className="space-y-1.5">
+        <Label htmlFor="end_date">
+          End Date <span className="text-muted-foreground">(optional)</span>
+        </Label>
+        <Input
           id="end_date"
           type="text"
           placeholder="YYYY-MM-DD"
           {...register('end_date')}
-          className="mt-1 block w-full rounded border-gray-300 shadow-sm"
         />
       </div>
 
-      <button
+      <Button
         type="submit"
         data-testid="trip-form-submit"
         disabled={isSubmitting}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
       >
         {isSubmitting ? 'Saving…' : 'Add Trip'}
-      </button>
+      </Button>
     </form>
   )
 }

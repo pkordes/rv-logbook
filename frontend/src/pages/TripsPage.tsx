@@ -21,7 +21,7 @@ export function TripsPage() {
 
   if (isError) {
     return (
-      <p className="text-red-600 py-4">
+      <p className="text-destructive py-4">
         Failed to load trips. Is the backend running?
       </p>
     )
@@ -32,12 +32,12 @@ export function TripsPage() {
       <h1 className="text-2xl font-bold mb-6">Trips</h1>
 
       {createTrip.isError && (
-        <p role="alert" className="mb-4 text-sm text-red-600">
+        <p role="alert" className="mb-4 text-sm text-destructive">
           Failed to create trip: {createTrip.error?.message ?? 'Unknown error'}
         </p>
       )}
       {deleteTrip.isError && (
-        <p role="alert" className="mb-4 text-sm text-red-600">
+        <p role="alert" className="mb-4 text-sm text-destructive">
           Failed to delete trip: {deleteTrip.error?.message ?? 'Unknown error'}
         </p>
       )}

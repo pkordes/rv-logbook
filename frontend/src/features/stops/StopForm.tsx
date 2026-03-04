@@ -4,6 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { Stop } from '../../api/stops'
 import { TagInput } from '../../components/TagInput'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 /**
  * Converts a YYYY-MM-DD date string to an RFC 3339 timestamp representing
@@ -135,89 +138,73 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
       className="mb-8 space-y-4"
     >
       {/* Name */}
-      <div>
-        <label htmlFor="stop-name" className="block text-sm font-medium text-gray-700">
-          Stop Name
-        </label>
-        <input
+      <div className="space-y-1.5">
+        <Label htmlFor="stop-name">Stop Name</Label>
+        <Input
           id="stop-name"
           type="text"
           {...register('name')}
-          className="mt-1 block w-full rounded border-gray-300 shadow-sm"
           placeholder="e.g. Yellowstone Camp"
         />
         {errors.name && (
-          <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+          <p className="text-sm text-destructive">{errors.name.message}</p>
         )}
       </div>
 
       {/* Arrived At */}
-      <div>
-        <label htmlFor="arrived-at" className="block text-sm font-medium text-gray-700">
-          Arrived At
-        </label>
-        <input
+      <div className="space-y-1.5">
+        <Label htmlFor="arrived-at">Arrived At</Label>
+        <Input
           id="arrived-at"
           type="text"
           {...register('arrived_at')}
-          className="mt-1 block w-full rounded border-gray-300 shadow-sm"
           placeholder="e.g. 2025-06-02"
         />
         {errors.arrived_at && (
-          <p className="mt-1 text-sm text-red-600">{errors.arrived_at.message}</p>
+          <p className="text-sm text-destructive">{errors.arrived_at.message}</p>
         )}
       </div>
 
       {/* Departed At */}
-      <div>
-        <label htmlFor="departed-at" className="block text-sm font-medium text-gray-700">
-          Departed At
-        </label>
-        <input
+      <div className="space-y-1.5">
+        <Label htmlFor="departed-at">Departed At</Label>
+        <Input
           id="departed-at"
           type="text"
           {...register('departed_at')}
-          className="mt-1 block w-full rounded border-gray-300 shadow-sm"
           placeholder="e.g. 2025-06-04 (optional)"
         />
       </div>
 
       {/* Location */}
-      <div>
-        <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-          Location
-        </label>
-        <input
+      <div className="space-y-1.5">
+        <Label htmlFor="location">Location</Label>
+        <Input
           id="location"
           type="text"
           {...register('location')}
-          className="mt-1 block w-full rounded border-gray-300 shadow-sm"
           placeholder="e.g. Yellowstone, WY (optional)"
         />
       </div>
 
       {/* Notes */}
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-          Notes
-        </label>
+      <div className="space-y-1.5">
+        <Label htmlFor="notes">Notes</Label>
         <textarea
           id="notes"
           {...register('notes')}
           rows={2}
-          className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+          className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Optional notes"
         />
       </div>
 
       {/* Tags */}
-      <div>
+      <div className="space-y-1.5">
         {/* Using <span> instead of <label> because TagInput manages its own
             aria-label ("Add tag") internally — a floating <label> with no
             htmlFor association would be an a11y violation. */}
-        <span className="block text-sm font-medium text-gray-700">
-          Tags
-        </span>
+        <span className="text-sm font-medium leading-none">Tags</span>
         <Controller
           name="tags"
           control={control}
@@ -227,24 +214,25 @@ export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: St
         />
       </div>
 
-      <button
-        type="submit"
-        data-testid="stop-form-submit"
-        disabled={isSubmitting}
-        className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-      >
-        {isSubmitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Stop'}
-      </button>
-      {isEditing && onCancel && (
-        <button
-          type="button"
-          aria-label="Cancel editing stop"
-          onClick={onCancel}
-          className="ml-2 rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+      <div className="flex gap-2">
+        <Button
+          type="submit"
+          data-testid="stop-form-submit"
+          disabled={isSubmitting}
         >
-          Cancel
-        </button>
-      )}
+          {isSubmitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Stop'}
+        </Button>
+        {isEditing && onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            aria-label="Cancel editing stop"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+        )}
+      </div>
     </form>
   )
 }

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { useTags, useUpdateTag, useDeleteTag, useCreateTag } from '../features/tags/useTagQueries'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 /**
  * TagsPage owns the /tags route.
@@ -36,7 +38,7 @@ export function TagsPage() {
 
   if (isError) {
     return (
-      <p className="text-red-600 py-4">
+      <p className="text-destructive py-4">
         Failed to load tags. Is the backend running?
       </p>
     )
@@ -92,31 +94,30 @@ export function TagsPage() {
 
       {/* New tag form */}
       <form onSubmit={handleCreateTag} className="flex gap-2 mb-6">
-        <input
+        <Input
           type="text"
           aria-label="New tag name"
           value={newTagName}
           onChange={(e) => setNewTagName(e.target.value)}
           placeholder="New tag name"
-          className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm shadow-sm"
+          className="flex-1"
         />
-        <button
+        <Button
           type="submit"
           data-testid="tag-form-submit"
           disabled={createTag.isPending || newTagName.trim() === ''}
-          className="rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
           Add Tag
-        </button>
+        </Button>
       </form>
 
       {updateTag.isError && (
-        <p role="alert" className="mb-4 text-sm text-red-600">
+        <p role="alert" className="mb-4 text-sm text-destructive">
           Failed to rename tag: {updateTag.error?.message ?? 'Unknown error'}
         </p>
       )}
       {deleteTag.isError && (
-        <p role="alert" className="mb-4 text-sm text-red-600">
+        <p role="alert" className="mb-4 text-sm text-destructive">
           Failed to delete tag: {deleteTag.error?.message ?? 'Unknown error'}
         </p>
       )}
@@ -137,12 +138,12 @@ export function TagsPage() {
               <tr key={tag.slug} className="border-b border-gray-100 last:border-0">
                 <td className="py-2 pr-4">
                   {editingSlug === tag.slug ? (
-                    <input
+                    <Input
                       type="text"
                       aria-label="Rename tag"
                       value={draftName}
                       onChange={(e) => setDraftName(e.target.value)}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+                      className="h-8 text-sm"
                       autoFocus
                     />
                   ) : (
@@ -153,60 +154,67 @@ export function TagsPage() {
                 <td className="py-2 whitespace-nowrap">
                   {editingSlug === tag.slug ? (
                     <span className="flex gap-2">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         aria-label="Save tag name"
                         onClick={() => saveEdit(tag.slug)}
                         disabled={updateTag.isPending}
-                        className="text-sm text-blue-600 hover:underline"
                       >
                         Save
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         aria-label="Cancel renaming tag"
                         onClick={cancelEdit}
-                        className="text-sm text-gray-500 hover:underline"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </span>
                   ) : pendingDeleteSlug === tag.slug ? (
                     <span className="flex items-center gap-2">
-                      <span className="text-sm text-red-700">
+                      <span className="text-sm text-destructive">
                         This will remove it from all stops.
                       </span>
-                      <button
+                      <Button
+                        variant="destructive"
+                        size="sm"
                         aria-label={`Confirm delete ${tag.name}`}
                         onClick={() => confirmDelete(tag.slug)}
                         disabled={deleteTag.isPending}
-                        className="text-sm text-red-600 font-semibold hover:underline"
                       >
                         Confirm delete
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         aria-label={`Keep ${tag.name}`}
                         onClick={cancelDelete}
-                        className="text-sm text-gray-500 hover:underline"
                       >
                         Keep
-                      </button>
+                      </Button>
                     </span>
                   ) : (
                     <span className="flex gap-2">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         aria-label={`Edit ${tag.name}`}
                         onClick={() => startEdit(tag.slug, tag.name)}
-                        className="text-sm text-blue-600 hover:underline"
                       >
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         aria-label={`Delete ${tag.name}`}
                         onClick={() => requestDelete(tag.slug)}
                         disabled={deleteTag.isPending}
-                        className="text-sm text-red-600 hover:underline"
+                        className="text-destructive hover:text-destructive"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </span>
                   )}
                 </td>

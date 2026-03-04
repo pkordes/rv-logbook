@@ -11,6 +11,7 @@ import { useStops, useDeleteStop, stopKeys } from '../features/stops/useStopQuer
 import { createStop, updateStop, addTagToStop, removeTagFromStop } from '../api/stops'
 import type { Stop } from '../api/stops'
 import { ApiError } from '../api/client'
+import { Button } from '@/components/ui/button'
 
 /**
  * TripDetailPage owns the /trips/:id route.
@@ -116,7 +117,7 @@ export function TripDetailPage() {
 
   if (trip.isError || !trip.data) {
     return (
-      <p className="text-red-600 py-4">
+      <p className="text-destructive py-4">
         Failed to load trip. Is the backend running?
       </p>
     )
@@ -151,46 +152,40 @@ export function TripDetailPage() {
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold">Stops</h2>
         <div className="flex gap-1">
-          <button
+          <Button
             type="button"
+            variant={view === 'list' ? 'default' : 'outline'}
+            size="sm"
             data-testid="view-toggle-list"
             onClick={() => setView('list')}
-            className={`rounded px-3 py-1 text-sm ${
-              view === 'list'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
           >
             List
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant={view === 'timeline' ? 'default' : 'outline'}
+            size="sm"
             data-testid="view-toggle-timeline"
             onClick={() => setView('timeline')}
-            className={`rounded px-3 py-1 text-sm ${
-              view === 'timeline'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
           >
             Timeline
-          </button>
+          </Button>
         </div>
       </div>
 
       {deleteStop.isError && (
-        <p role="alert" className="mb-3 text-sm text-red-600">
+        <p role="alert" className="mb-3 text-sm text-destructive">
           Failed to delete stop: {deleteStop.error?.message ?? 'Unknown error'}
         </p>
       )}
       {addError && (
-        <p role="alert" className="mb-3 text-sm text-red-600">
+        <p role="alert" className="mb-3 text-sm text-destructive">
           Failed to add stop: {addError}
         </p>
       )}
 
       {editError && (
-        <p role="alert" className="mb-3 text-sm text-red-600">
+        <p role="alert" className="mb-3 text-sm text-destructive">
           Failed to save changes: {editError}
         </p>
       )}

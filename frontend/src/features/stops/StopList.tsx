@@ -1,5 +1,6 @@
 import type { Stop } from '../../api/stops';
 import { TagPill } from '../../components/TagPill';
+import { Button } from '@/components/ui/button';
 
 /** Props for {@link StopList}. */
 interface StopListProps {
@@ -50,22 +51,25 @@ export function StopList({ stops, onDelete, onEdit }: StopListProps) {
             )}
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               aria-label={`Edit ${stop.name}`}
               onClick={() => onEdit(stop)}
-              className="text-sm text-blue-600 hover:text-blue-800"
             >
               Edit
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               aria-label={`Delete ${stop.name}`}
               onClick={() => onDelete(stop.id)}
-              className="text-sm text-red-600 hover:text-red-800"
+              className="text-destructive hover:text-destructive"
             >
               Delete
-            </button>
+            </Button>
           </div>
         </li>
       ))}

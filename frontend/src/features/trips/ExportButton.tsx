@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fetchExportBlob } from '../../api/export'
+import { Button } from '@/components/ui/button'
 
 /**
  * ExportButton triggers a browser file download of the full trip/stop data.
@@ -39,18 +40,19 @@ export function ExportButton() {
 
   return (
     <div>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         aria-label="Export CSV"
         onClick={() => void handleExport()}
         disabled={isPending}
         aria-busy={isPending}
-        className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
       >
         Export CSV
-      </button>
+      </Button>
       {error !== null && (
-        <p className="mt-1 text-xs text-red-600" role="alert">
+        <p className="mt-1 text-xs text-destructive" role="alert">
           {error}
         </p>
       )}
