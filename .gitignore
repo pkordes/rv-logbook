@@ -75,6 +75,4 @@ frontend/.playwright/
 # Project planning / AI dev tooling — not for public consumption
 # ---------------------------------------------------------------------------
 
-PLAN.md
-.github/copilot-instructions.md
 .github/workflows-temp

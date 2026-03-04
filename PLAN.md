@@ -527,12 +527,12 @@ Each step follows this sequence:
 > Goal: One full user journey, automated and runnable in CI.
 > Demonstrates ownership of the whole stack, not just unit tests.
 
-- [ ] **19.1** Install and configure Playwright (`frontend/e2e/`)
-- [ ] **19.2** Write journey: create trip → add stop with tags → verify timeline →
+- [x] **19.1** Install and configure Playwright (`frontend/e2e/`)
+- [x] **19.2** Write journey: create trip → add stop with tags → verify timeline →
        export CSV → delete trip
-- [ ] **19.3** Add `make e2e` target (starts API + frontend, runs Playwright, tears down)
-- [ ] **19.4** Add E2E job to GitHub Actions (only runs on `main`, runs against the Fly.io URL)
-- [ ] **19.5** Commit: `test(e2e): full trip lifecycle journey`
+- [x] **19.3** Add `make e2e` target (starts API + frontend, runs Playwright, tears down)
+- [x] **19.4** Add E2E job to GitHub Actions (only runs on `main`, runs against the Fly.io URL)
+- [x] **19.5** Commit: `test(e2e): full trip lifecycle journey`
 
 ---
 
