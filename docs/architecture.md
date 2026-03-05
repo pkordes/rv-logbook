@@ -7,9 +7,9 @@ HTTP Request
      │
      ▼
 ┌─────────────────────────────────────────────────────┐
-│  Middleware chain (main.go)                          │
-│  RequestID → RealIP → SlogLogger → Recoverer         │
-│  SecurityHeaders → CORS → MaxBodySize                │
+│  Middleware chain (main.go)                         │
+│  RequestID → RealIP → SlogLogger → Recoverer        │
+│  SecurityHeaders → CORS → MaxBodySize               │
 └─────────────────────────────────────────────────────┘
      │
      ▼
@@ -51,7 +51,7 @@ HTTP Request
 │  Responsibilities:                                  │
 │  • Parameterized queries (pgx.NamedArgs)            │
 │  • Map pgx rows → domain types                      │
-│  • Translate pgx errors → domain.ErrNotFound etc.  │
+│  • Translate pgx errors → domain.ErrNotFound etc.   │
 └────────────────────┬────────────────────────────────┘
                      │
                      ▼
@@ -112,9 +112,9 @@ Route
                        ▼
 ┌───────────────────────────────────────────────────────┐
 │  api/   (typed fetch wrappers)                        │
-│  One file per resource: trips.ts, stops.ts, tags.ts  │
+│  One file per resource: trips.ts, stops.ts, tags.ts   │
 │  Only layer that knows the URL shape.                 │
-│  All types derived from openapi.d.ts (generated).    │
+│  All types derived from openapi.d.ts (generated).     │
 └──────────────────────┬────────────────────────────────┘
                        │  HTTP /api/* (proxied to :8080 in dev)
                        ▼

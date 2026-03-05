@@ -1,4 +1,4 @@
-﻿# RV Logbook â€” Go + React
+# RV Logbook — Go + React
 
 [![Backend](https://github.com/pkordes/rv-logbook/actions/workflows/backend.yml/badge.svg)](https://github.com/pkordes/rv-logbook/actions/workflows/backend.yml)
 [![Backend PR](https://github.com/pkordes/rv-logbook/actions/workflows/backend-pr.yml/badge.svg)](https://github.com/pkordes/rv-logbook/actions/workflows/backend-pr.yml)
@@ -10,45 +10,45 @@ tag campgrounds for quick recall, view a trip timeline, and export your travel
 history to CSV or JSON.
 
 Built as an explicit demonstration of senior-level engineering across a full
-Go + React stack â€” every decision is deliberate and documented.
+Go + React stack — every decision is deliberate and documented.
 
 ---
 
 ## Features
 
-- **Trip management** â€” create, edit, and delete trips with date ranges and notes
-- **Stop tracking** â€” log every campground or park with location, dates, cost,
+- **Trip management** — create, edit, and delete trips with date ranges and notes
+- **Stop tracking** — log every campground or park with location, dates, cost,
   site number, rating, and free-text notes
-- **Tagging** â€” apply and reuse tags (e.g. `quiet`, `good-cell`, `50-amp`) across
+- **Tagging** — apply and reuse tags (e.g. `quiet`, `good-cell`, `50-amp`) across
   stops; edit or delete tags globally from the Tags page
-- **Timeline view** â€” visualize stops on a trip as a date-ordered timeline
-- **Paginated lists** â€” all collections support `?page=` and `?limit=` parameters
-- **Export** â€” download full travel history as CSV or JSON from a single endpoint
-- **Live API docs** â€” interactive Scalar UI served at `/docs` with the OpenAPI spec
+- **Timeline view** — visualize stops on a trip as a date-ordered timeline
+- **Paginated lists** — all collections support `?page=` and `?limit=` parameters
+- **Export** — download full travel history as CSV or JSON from a single endpoint
+- **Live API docs** — interactive Scalar UI served at `/docs` with the OpenAPI spec
 
 ---
 
 ## Architecture Overview
 
 ```
-openapi.yaml  (single source of truth â€” all types derived from this)
-     â”‚
-     â””â”€ oapi-codegen â†’ StrictServerInterface + request/response types
-                            â”‚
-HTTP Request â”€â”€â–º handler  (implements compiler-enforced interface)
-                    â”‚
+openapi.yaml  (single source of truth — all types derived from this)
+     │
+     └─ oapi-codegen → StrictServerInterface + request/response types
+                            │
+HTTP Request ──► handler  (implements compiler-enforced interface)
+                    │
                  service  (business rules; unit-tested with mocks)
-                    â”‚
+                    │
                    repo   (all SQL; integration-tested against real DB)
-                    â”‚
+                    │
                  domain   (plain structs + sentinel errors; zero deps)
 ```
 
 Frontend:
 
 ```
-Page  â†’  feature  â†’  TanStack Query hooks  â†’  api/ (typed fetch wrappers)
-                                                â”‚
+Page  →  feature  →  TanStack Query hooks  →  api/ (typed fetch wrappers)
+                                                │
                                           components/ (dumb UI primitives)
 ```
 
@@ -61,7 +61,7 @@ data model ERD.
 
 | Concern | Choice | Why |
 |---|---|---|
-| Go router | `chi` | Lightweight; accepts stdlib `http.Handler` â€” no lock-in |
+| Go router | `chi` | Lightweight; accepts stdlib `http.Handler` — no lock-in |
 | API contract | `oapi-codegen` (spec-first) | `openapi.yaml` is ground truth; compiler enforces interface conformance |
 | Breaking-change CI | `oasdiff` | Fails PRs that break the contract; running on branch has no useful baseline |
 | DB driver | `pgx/v5` + raw SQL | Explicit queries; no ORM magic hiding N+1s |
@@ -86,8 +86,8 @@ Design decisions are documented as Architecture Decision Records in
 
 | Tool | Version | Install |
 |---|---|---|
-| Go | â‰¥ 1.25 | https://go.dev/dl |
-| Node | â‰¥ 22 (see `.nvmrc`) | https://nodejs.org |
+| Go | ≥ 1.25 | https://go.dev/dl |
+| Node | ≥ 22 (see `.nvmrc`) | https://nodejs.org |
 | Podman / Docker | any | https://podman.io |
 | podman-compose | any | `pip install podman-compose` |
 | goose | latest | `go install github.com/pressly/goose/v3/cmd/goose@latest` |
@@ -148,43 +148,43 @@ Three-tier structure based on cost and signal:
 
 ```
 rv-logbook/
-â”œâ”€â”€ backend/
-â”‚   â”œâ”€â”€ cmd/api/          # main.go â€” wiring only, no business logic
-â”‚   â”œâ”€â”€ internal/
-â”‚   â”‚   â”œâ”€â”€ domain/       # plain structs, sentinel errors, zero deps
-â”‚   â”‚   â”œâ”€â”€ repo/         # SQL layer; returns domain types
-â”‚   â”‚   â”œâ”€â”€ service/      # business rules, unit-testable
-â”‚   â”‚   â””â”€â”€ handler/      # HTTP; implements compiler-enforced interface
-â”‚   â”œâ”€â”€ migrations/       # goose SQL migrations (embedded in binary)
-â”‚   â””â”€â”€ spec/             # openapi.yaml + Go embed
-â”œâ”€â”€ frontend/
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ api/          # typed fetch wrappers (one file per resource)
-â”‚   â”‚   â”œâ”€â”€ features/     # trips/, stops/, tags/ â€” owns one product slice
-â”‚   â”‚   â”œâ”€â”€ components/   # reusable UI primitives
-â”‚   â”‚   â””â”€â”€ pages/        # route-level components
-â”‚   â””â”€â”€ e2e/              # Playwright tests
-â””â”€â”€ .github/
-    â”œâ”€â”€ workflows/        # CI (backend, frontend, PR, E2E tiers)
-    â””â”€â”€ dependabot.yml    # automated dependency + security PRs
+├── backend/
+│   ├── cmd/api/          # main.go — wiring only, no business logic
+│   ├── internal/
+│   │   ├── domain/       # plain structs, sentinel errors, zero deps
+│   │   ├── repo/         # SQL layer; returns domain types
+│   │   ├── service/      # business rules, unit-testable
+│   │   └── handler/      # HTTP; implements compiler-enforced interface
+│   ├── migrations/       # goose SQL migrations (embedded in binary)
+│   └── spec/             # openapi.yaml + Go embed
+├── frontend/
+│   ├── src/
+│   │   ├── api/          # typed fetch wrappers (one file per resource)
+│   │   ├── features/     # trips/, stops/, tags/ — owns one product slice
+│   │   ├── components/   # reusable UI primitives
+│   │   └── pages/        # route-level components
+│   └── e2e/              # Playwright tests
+└── .github/
+    ├── workflows/        # CI (backend, frontend, PR, E2E tiers)
+    └── dependabot.yml    # automated dependency + security PRs
 ```
 
 ---
 
 ## What I Would Do With More Time
 
-- **Authentication** â€” API key middleware is the natural next step; the handler
+- **Authentication** — API key middleware is the natural next step; the handler
   context threading and middleware chain are already set up for it
-- **Rate limiting** â€” per-IP token bucket using `go-chi/httprate`; the middleware
+- **Rate limiting** — per-IP token bucket using `go-chi/httprate`; the middleware
   chain has the right insertion point
-- **Map view** â€” render stops as pins on a Leaflet/Mapbox map using the location
+- **Map view** — render stops as pins on a Leaflet/Mapbox map using the location
   strings already stored on each stop
-- **Offline / PWA** â€” service worker + IndexedDB for viewing cached trips without
+- **Offline / PWA** — service worker + IndexedDB for viewing cached trips without
   a connection; natural complement to a travel app used in areas with no cell
-- **Geolocation** â€” auto-populate the stop's location field from the browser's
+- **Geolocation** — auto-populate the stop's location field from the browser's
   Geolocation API on mobile
-- **Full-text search** â€” Postgres `tsvector` columns on `name` and `notes` fields
+- **Full-text search** — Postgres `tsvector` columns on `name` and `notes` fields
   to enable real search (vs the current prefix-match on tags)
-- **Recurring export schedule** â€” a cron job that pushes a weekly CSV export to
+- **Recurring export schedule** — a cron job that pushes a weekly CSV export to
   an S3 bucket for automatic backup
 

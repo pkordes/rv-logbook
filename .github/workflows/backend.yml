@@ -16,6 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Fast encoding gate — runs before any toolchain setup.
+      # Catches UTF-8 BOM and cp1252 mojibake (garbled â€" instead of —)
+      # that make markdown look broken on GitHub.  Python is pre-installed on
+      # all GitHub-hosted runners so this adds zero setup time.
+      - name: Check file encoding
+        run: python scripts/check-encoding.py .
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:

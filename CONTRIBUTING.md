@@ -114,6 +114,18 @@ make frontend/dev
 The Vite dev proxy means you never need to think about CORS during local development —
 all requests appear to the browser as same-origin (`localhost:5173`).
 
+### Install Git hooks (once after cloning)
+
+```bash
+make hooks/install
+```
+
+This sets `core.hooksPath = .githooks` in your local Git config so that
+`.githooks/pre-push` runs automatically before every `git push`.  The hook
+calls `scripts/check-encoding.py` and blocks the push if any `.md` or `.txt`
+file contains a UTF-8 BOM or cp1252 mojibake (garbled sequences where an
+em-dash `—` appears as three unreadable characters, for example).
+
 ---
 
 ## Common Commands
@@ -141,6 +153,8 @@ all requests appear to the browser as same-origin (`localhost:5173`).
 | `make db/rollback` | Roll back last migration (`goose down`) |
 | `make db/reset` | Wipe dev DB and re-apply all migrations |
 | `make e2e` | Run Playwright E2E tests (see prerequisites below) |
+| `make lint/encoding` | Check all `.md`/`.txt` files for UTF-8 BOM and cp1252 mojibake |
+| `make hooks/install` | Configure Git to use `.githooks/pre-push` (run once after cloning) |
 
 ---
 
