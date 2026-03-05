@@ -102,7 +102,7 @@ export function TagInput({ value, onChange }: TagInputProps) {
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          className="w-full min-w-[6rem] border-none bg-transparent p-0 text-sm focus:outline-none"
+          className="w-full min-w-24 border-none bg-transparent p-0 text-sm focus:outline-none"
           placeholder={value.length === 0 ? 'Add tags…' : ''}
         />
         {suggestions.length > 0 && (
