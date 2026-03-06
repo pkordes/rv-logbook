@@ -26,7 +26,7 @@ export function TagPill({ name, onRemove }: TagPillProps) {
           type="button"
           aria-label={`Remove ${name}`}
           onClick={onRemove}
-          className="ml-0.5 inline-flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full opacity-60 hover:opacity-100 focus:outline-none"
+          className="ml-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full opacity-60 hover:opacity-100 focus:outline-none"
         >
           {/* visually an × symbol, sized to fit inside the pill */}
           <span aria-hidden="true">&times;</span>

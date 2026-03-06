@@ -32,7 +32,8 @@ GOOSE        := goose
 		backend/lint backend/generate \
         frontend/dev frontend/build frontend/test frontend/lint frontend/generate \
         db/up db/down db/migrate db/rollback db/reset \
-        e2e
+        e2e \
+        lint/encoding hooks/install
 
 # ---------------------------------------------------------------------------
 # help — self-documenting target list
@@ -59,6 +60,10 @@ help: ## Show this help message
 	$(info     make frontend/test      Run Vitest unit tests)
 	$(info     make frontend/lint      Run ESLint + TypeScript type-check)
 	$(info     make frontend/generate  Regenerate TypeScript types from openapi.yaml)
+	$(info )
+	$(info   Repo health)
+	$(info     make lint/encoding      Check all .md/.txt files for UTF-8 BOM and mojibake)
+	$(info     make hooks/install      Configure Git to use .githooks/ pre-push hook)
 	$(info )
 	$(info   E2E Tests)
 	$(info     make e2e               Run Playwright E2E tests (requires: make db/up && make backend/run in another terminal))
@@ -193,3 +198,23 @@ db/reset:
 ## Playwright starts the Vite dev server automatically via playwright.config.ts.
 e2e:
 	npm --prefix $(FRONTEND_DIR) run e2e
+
+# ---------------------------------------------------------------------------
+# Repo health targets
+# ---------------------------------------------------------------------------
+
+## Check all .md and .txt files for UTF-8 BOM and cp1252 mojibake sequences.
+## Mojibake happens when a UTF-8 file is decoded as cp1252 and re-saved,
+## turning em-dashes (—) into the garbled sequence â€" and box-drawing
+## characters into â"‚.
+## This same check is enforced by the pre-push hook (make hooks/install)
+## and by the branch CI workflow.
+lint/encoding:
+	python scripts/check-encoding.py .
+
+## Configure Git to use the .githooks/ directory for local hooks.
+## Run this once after cloning the repo.
+## The pre-push hook will then block any push that contains encoding issues.
+hooks/install:
+	git config core.hooksPath .githooks
+	@echo "Hooks installed. .githooks/pre-push will run before each git push."

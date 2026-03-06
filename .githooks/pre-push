@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+# pre-push hook — runs before `git push` and blocks the push on failure.
+#
+# Checks all markdown / text files for UTF-8 BOM and cp1252 mojibake.
+# Mojibake turns em-dashes and box-drawing characters into garbled â€" or â"‚
+# sequences that look wrong on GitHub and in rendered previews.
+#
+# Install once:  make hooks/install
+# Uninstall:     git config --unset core.hooksPath
+
+set -e
+
+echo "pre-push: checking file encoding..."
+python scripts/check-encoding.py .
+
+# If the script exits non-zero, git prevents the push and shows the output.

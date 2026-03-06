@@ -107,3 +107,63 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/rvlogbook_test
         run: make backend/test
+
+  # govulncheck scans the Go module graph against the Go vulnerability database
+  # (https://vuln.go.dev). It checks only packages that are actually reachable
+  # in the build — not every transitive download — keeping noise low.
+  # Lives at PR tier: it makes a network call to the vuln DB and takes ~20s.
+  vuln-scan:
+    name: Backend / Vulnerability Scan (govulncheck)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+        working-directory: backend
+
+  # CodeQL performs deep semantic analysis on the Go source code — it tracks
+  # tainted data flows across function boundaries, catching injection and path
+  # traversal bugs that static linters miss.
+  # Free for public repos. Lives at PR tier: 3–8 min build time.
+  codeql:
+    name: Backend / CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # Required for CodeQL to upload SARIF results to the Security tab.
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: go
+          # queries: security-extended  # Uncomment to enable broader query suite
+
+      - name: Build for CodeQL
+        run: make backend/build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:go

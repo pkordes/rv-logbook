@@ -16,6 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Fast encoding gate — runs before any toolchain setup.
+      # Catches UTF-8 BOM and cp1252 mojibake (garbled â€" instead of —)
+      # that make markdown look broken on GitHub.  Python is pre-installed on
+      # all GitHub-hosted runners so this adds zero setup time.
+      - name: Check file encoding
+        run: python scripts/check-encoding.py .
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -39,4 +46,12 @@ jobs:
       # so integration tests skip even if the variable leaks from the environment.
       - name: Test (unit)
         run: make backend/test/unit
+
+      # gosec performs static analysis on Go source for security anti-patterns:
+      # hardcoded credentials, SQL injection vectors, unsafe syscall usage, etc.
+      # It is fast (< 5 s on this codebase) so it belongs at the branch tier.
+      - name: Security scan (gosec)
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -exclude-dir=internal/handler/gen ./...
 

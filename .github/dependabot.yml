@@ -1,0 +1,48 @@
+# Dependabot configuration.
+# Monitors go.sum (Go modules) and package-lock.json (npm) for new CVEs and
+# outdated dependencies. When a vulnerability is published, Dependabot opens
+# an automated PR with the minimum version bump required to resolve it.
+#
+# This is a repo-level security control — not a CI workflow step — so it runs
+# outside the three-tier pipeline. It covers the gap between CI runs.
+#
+# Reference: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+
+updates:
+  # Go modules (backend/).
+  # Weekly cadence avoids PR noise while still catching vulnerabilities promptly.
+  - package-ecosystem: "gomod"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "go"
+    # Limit the number of open PRs to avoid review fatigue.
+    open-pull-requests-limit: 5
+
+  # npm (frontend/).
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "javascript"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions — keep action versions current (security patches in actions
+  # themselves, e.g. actions/checkout supply-chain incidents).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "ci"
+    open-pull-requests-limit: 5
