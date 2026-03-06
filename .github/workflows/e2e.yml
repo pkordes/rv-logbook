@@ -108,7 +108,7 @@ jobs:
       # even when the test run itself exits with a non-zero code.
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: frontend/playwright-report/
@@ -119,7 +119,7 @@ jobs:
       # visible in the Actions summary without needing to open the full report.
       - name: Upload failure screenshots
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-screenshots
           path: frontend/test-results/
