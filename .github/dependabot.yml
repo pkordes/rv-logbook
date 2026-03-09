@@ -36,9 +36,12 @@ updates:
     open-pull-requests-limit: 5
     ignore:
       # eslint-plugin-jsx-a11y@6.x does not declare support for ESLint 10+.
-      # Hold ESLint at v9 until the plugin ecosystem catches up, then remove
-      # this ignore rule and re-enable the major-version bump.
+      # eslint and @eslint/js are versioned in lockstep — both must be held at
+      # v9 until the plugin ecosystem catches up. Remove both entries together
+      # when eslint-plugin-jsx-a11y adds "^10" to its peerDependencies.
       - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
 
   # GitHub Actions — keep action versions current (security patches in actions
