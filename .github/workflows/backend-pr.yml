@@ -57,7 +57,7 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       - name: Install oasdiff
-        run: go install github.com/oasdiff/oasdiff@latest
+        run: go install github.com/oasdiff/oasdiff@v1.11.10
 
       # Fetch only the tip of main — enough to extract the baseline spec.
       - name: Fetch main for baseline
