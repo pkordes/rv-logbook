@@ -29,6 +29,7 @@ GOOSE        := goose
 .PHONY: help \
         backend/run backend/build backend/check backend/test backend/test/unit \
 		backend/test/service backend/test/handler \
+		backend/spec backend/spec/integration \
 		backend/lint backend/generate \
         frontend/dev frontend/build frontend/test frontend/lint frontend/generate \
         db/up db/down db/migrate db/rollback db/reset \
@@ -51,6 +52,8 @@ help: ## Show this help message
 	$(info     make backend/test/unit  Run all tests, skip integration tests (no DB required))
 	$(info     make backend/test/service  Run service-layer unit tests only (no DB))
 	$(info     make backend/test/handler  Run handler-layer unit tests only (no DB))
+	$(info     make backend/spec             Print unit tests as a human-readable spec (no DB))
+	$(info     make backend/spec/integration Print integration test names as a spec (no DB required))
 	$(info     make backend/lint       Run go vet + staticcheck)
 	$(info     make backend/generate   Regenerate Go code from openapi.yaml)
 	$(info )
@@ -120,6 +123,16 @@ backend/test/handler:
 backend/test/unit:
 	cd $(BACKEND_DIR) && gotestsum --format pkgname -- -count=1 ./...
 
+## Print all unit tests as a human-readable specification using gotestdox.
+## Uses ./... — automatically picks up any new packages. No DB required.
+## Integration test files (//go:build integration) are excluded by default.
+backend/spec:
+	cd $(BACKEND_DIR) && go test -json ./... | gotestdox
+
+## Print all integration tests as a human-readable specification.
+## Scans source files directly — no database or build tags required.
+backend/spec/integration:
+	python scripts/spec-format.py $(BACKEND_DIR)/internal/repo $(BACKEND_DIR)/internal/apitest $(BACKEND_DIR)/testutil
 ## Run go vet and staticcheck.
 ## Both must pass with zero warnings — this mirrors the CI check.
 backend/lint:
