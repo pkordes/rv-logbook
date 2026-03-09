@@ -1,43 +1,46 @@
 #!/usr/bin/env python3
-"""Format Go test names as a human-readable specification.
+"""Format Go and TypeScript test names as a human-readable specification.
 
-Two modes:
+Modes are selected by the --lang flag (default: go):
 
-  Stdin mode (used by backend/spec):
-    Reads JSON from `go test -json` piped through gotestdox, or plain test
-    names from `go test -list`, and pretty-prints them.
-    Usage: go test -json ./... | gotestdox | python scripts/spec-format.py
-
-  Directory mode (used by backend/spec/integration):
-    Scans Go test files in the given directories and prints all test names.
-    No database or build tags required — reads source files directly.
+  go (default):
+    Scans Go *_test.go files for TestXxx functions.
     Usage: python scripts/spec-format.py backend/internal/repo backend/internal/apitest
+
+  ts:
+    Scans TypeScript *.test.ts(x) files for describe/it blocks.
+    Usage: python scripts/spec-format.py --lang ts frontend/src
+
+  e2e:
+    Scans Playwright *.spec.ts files for test.describe/test blocks.
+    Usage: python scripts/spec-format.py --lang e2e frontend/e2e
 """
 import sys
 import re
 import os
+import argparse
 
 
 def camel_to_words(s: str) -> str:
-    # Split before an uppercase letter that follows a lowercase letter or digit.
-    # e.g. "TripRepo" -> "Trip Repo", "GetByID" -> "Get By ID"
     s = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', s)
-    # Split before an uppercase+lowercase sequence preceded by uppercase run.
-    # e.g. "IDFoo" -> "ID Foo"
     s = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', s)
     return s.lower()
 
 
-def format_name(raw: str) -> str:
-    """Convert TestFoo_Bar_Baz to 'foo bar baz'."""
+def format_go_name(raw: str) -> str:
     parts = raw.split('_')
     words = [camel_to_words(p) for p in parts if p]
     return ' '.join(words)
 
 
-if len(sys.argv) > 1:
-    # Directory mode: scan Go *_test.go files for test function declarations.
-    for dirpath in sys.argv[1:]:
+def _extract_string(line: str) -> str:
+    """Extract the first single- or double-quoted string from a line."""
+    m = re.search(r'[\'"](.+?)[\'"]', line)
+    return m.group(1) if m else ''
+
+
+def scan_go(dirs):
+    for dirpath in dirs:
         pkg = os.path.basename(dirpath.rstrip('/\\'))
         tests = []
         for root, _dirs, files in os.walk(dirpath):
@@ -48,14 +51,75 @@ if len(sys.argv) > 1:
                     for line in f:
                         m = re.match(r'^func (Test[A-Z]\w*)\(', line)
                         if m and m.group(1) != 'TestMain':
-                            tests.append(format_name(m.group(1)[4:]))
+                            tests.append(format_go_name(m.group(1)[4:]))
         if tests:
             print(f'\n{pkg}:')
             for t in tests:
                 print(f' \u2714 {t}')
+
+
+def scan_ts(dirs):
+    for dirpath in dirs:
+        for root, _dirs, files in os.walk(dirpath):
+            for fname in sorted(files):
+                if not re.search(r'\.test\.(ts|tsx)$', fname):
+                    continue
+                suite = None
+                tests = []
+                with open(os.path.join(root, fname), encoding='utf-8') as f:
+                    for line in f:
+                        if re.match(r'^describe\(', line):
+                            if suite and tests:
+                                print(f'\n{suite}:')
+                                for t in tests:
+                                    print(f' \u2714 {t}')
+                            suite = _extract_string(line)
+                            tests = []
+                        elif re.match(r'^  (?:it|test)\(', line):
+                            name = _extract_string(line)
+                            if name:
+                                tests.append(name)
+                if suite and tests:
+                    print(f'\n{suite}:')
+                    for t in tests:
+                        print(f' \u2714 {t}')
+
+
+def scan_e2e(dirs):
+    for dirpath in dirs:
+        for root, _dirs, files in os.walk(dirpath):
+            for fname in sorted(files):
+                if not fname.endswith('.spec.ts'):
+                    continue
+                suite = None
+                tests = []
+                with open(os.path.join(root, fname), encoding='utf-8') as f:
+                    for line in f:
+                        if re.match(r'^test\.describe\(', line):
+                            if suite and tests:
+                                print(f'\n{suite}:')
+                                for t in tests:
+                                    print(f' \u2714 {t}')
+                            suite = _extract_string(line)
+                            tests = []
+                        elif re.match(r'^  test\(', line):
+                            name = _extract_string(line)
+                            if name:
+                                tests.append(name)
+                if suite and tests:
+                    print(f'\n{suite}:')
+                    for t in tests:
+                        print(f' \u2714 {t}')
+
+
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument('--lang', default='go')
+parser.add_argument('dirs', nargs='*')
+args = parser.parse_args()
+
+if args.lang == 'ts':
+    scan_ts(args.dirs)
+elif args.lang == 'e2e':
+    scan_e2e(args.dirs)
 else:
-    # Stdin mode: format plain test names from `go test -list` output.
-    for line in sys.stdin:
-        line = line.rstrip()
-        if line.startswith('Test'):
-            print(f' \u2714 {format_name(line[4:])}')
+    scan_go(args.dirs)

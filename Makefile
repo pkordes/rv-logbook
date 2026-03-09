@@ -31,7 +31,7 @@ GOOSE        := goose
 		backend/test/service backend/test/handler \
 		backend/spec backend/spec/integration \
 		backend/lint backend/generate \
-        frontend/dev frontend/build frontend/test frontend/lint frontend/generate \
+        frontend/dev frontend/build frontend/test frontend/spec frontend/spec/e2e frontend/lint frontend/generate \
         db/up db/down db/migrate db/rollback db/reset \
         e2e \
         lint/encoding hooks/install
@@ -160,6 +160,16 @@ frontend/build:
 ## Run Vitest unit tests (single run, no watch mode).
 frontend/test:
 	npm --prefix $(FRONTEND_DIR) run test -- --run
+
+## Print all frontend unit tests as a human-readable specification.
+## Scans source files directly — no test run required.
+frontend/spec:
+	python scripts/spec-format.py --lang ts $(FRONTEND_DIR)/src
+
+## Print all Playwright E2E tests as a human-readable specification.
+## Scans spec files directly — no running stack required.
+frontend/spec/e2e:
+	python scripts/spec-format.py --lang e2e $(FRONTEND_DIR)/e2e
 
 ## Run ESLint and TypeScript type-check across all source files.
 frontend/lint:
