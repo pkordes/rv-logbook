@@ -1,3 +1,15 @@
+/* This is the TypeScript configuration file for Node.js-specific code in the frontend. 
+It is used by Vite when running in Node.js mode (e.g. for vite.config.ts). 
+
+This covers only vite.config.ts. That file runs in Node.js, not the browser 
+— so it gets lib: ["ES2023"] (no DOM) and types: ["node"] instead of browser types. 
+It's a completely different runtime environment from your React app, 
+so it needs its own TS config.
+
+This is a common source of confusion: vite.config.ts is a Node script that configures 
+the tool that builds your browser app. It never runs in the browser.
+*/
+
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
