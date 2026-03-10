@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
  *   <LoadingSpinner />
  *   <LoadingSpinner label="Loading trips..." />
  */
-export function LoadingSpinner({ label = 'Loading...' }: { label?: string }) {
+export const LoadingSpinner = ({ label = 'Loading...' }: { label?: string }) => {
   return (
     <div role="status" aria-label={label} className="space-y-3 py-4">
       <Skeleton className="h-5 w-3/4" />

@@ -86,7 +86,7 @@ interface StopFormProps {
  * with autocomplete from existing tags. The validated `tagNames` array is
  * passed to the parent via `onSubmit`.
  */
-export function StopForm({ onSubmit, isSubmitting, initialValues, onCancel }: StopFormProps) {
+export const StopForm = ({ onSubmit, isSubmitting, initialValues, onCancel }: StopFormProps) => {
   const isEditing = Boolean(initialValues)
   const {
     register,

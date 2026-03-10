@@ -12,7 +12,8 @@ import { toast } from 'sonner'
  * hooks for data and mutations, then passes plain props down to the
  * presentational children (TripList, TripForm). No SQL, no fetch calls here.
  */
-export function TripsPage() {
+
+export const TripsPage = () => {
   const { data, isLoading, isError } = useTrips()
   const createTrip = useCreateTrip()
   const deleteTrip = useDeleteTrip()

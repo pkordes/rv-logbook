@@ -42,7 +42,7 @@ function sortedByDate(stops: Stop[]): Stop[] {
  * This is purely a derived view of the same stop data shown in StopList —
  * no new API calls are needed, just reordering and a different layout.
  */
-export function TripTimeline({ stops }: TripTimelineProps) {
+export const TripTimeline = ({ stops }: TripTimelineProps) => {
   if (stops.length === 0) {
     return (
       <p className="py-4 text-sm text-gray-500 italic">

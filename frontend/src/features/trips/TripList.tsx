@@ -17,7 +17,7 @@ interface TripListProps {
  * props. Keep business logic and data fetching in the parent (`TripsPage`) or
  * in TanStack Query hooks.
  */
-export function TripList({ trips, onDelete }: TripListProps) {
+export const TripList = ({ trips, onDelete }: TripListProps) => {
   if (trips.length === 0) {
     return (
       <p className="text-gray-500 italic py-4">

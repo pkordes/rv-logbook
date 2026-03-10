@@ -48,7 +48,7 @@ interface TripFormProps {
  * This component owns no server state. Mutations live in the parent
  * (TripsPage) where TanStack Query provides loading/error state.
  */
-export function TripForm({ onSubmit, isSubmitting }: TripFormProps) {
+export const TripForm = ({ onSubmit, isSubmitting }: TripFormProps) => {
   const {
     register,
     handleSubmit,

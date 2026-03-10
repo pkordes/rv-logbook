@@ -19,7 +19,7 @@ interface StopListProps {
  * The arrived_at timestamp is displayed as the date portion only (YYYY-MM-DD)
  * — the time component is rarely useful in a logbook list view.
  */
-export function StopList({ stops, onDelete, onEdit }: StopListProps) {
+export const StopList = ({ stops, onDelete, onEdit }: StopListProps) => {
   if (stops.length === 0) {
     return (
       <p className="text-gray-500 italic py-4">

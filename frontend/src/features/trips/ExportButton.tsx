@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
  * This is the standard browser pattern for fetch-to-download without a
  * server-side redirect — equivalent to saving a file from a stream in backend code.
  */
-export function ExportButton() {
+export const ExportButton = () => {
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

@@ -19,7 +19,7 @@ import { toast } from 'sonner'
  * - Only one row can be in edit mode at a time — opening a new edit row
  *   automatically closes the previous one via the editingSlug state variable.
  */
-export function TagsPage() {
+export const TagsPage = () => {
   const { data, isLoading, isError } = useTags()
   const updateTag = useUpdateTag()
   const deleteTag = useDeleteTag()

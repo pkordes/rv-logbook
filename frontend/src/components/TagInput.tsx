@@ -27,7 +27,7 @@ interface TagInputProps {
  * Designed to be used inside a React Hook Form `<Controller>` wrapper so the
  * form owns the canonical state.
  */
-export function TagInput({ value, onChange }: TagInputProps) {
+export const TagInput = ({ value, onChange }: TagInputProps) => {
   const [inputValue, setInputValue] = useState('')
   const [suggestions, setSuggestions] = useState<Tag[]>([])
 

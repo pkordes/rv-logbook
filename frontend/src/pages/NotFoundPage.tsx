@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
  * NotFoundPage is rendered for any URL that doesn't match a defined route.
  * Wired as the catch-all "*" route in main.tsx.
  */
-export function NotFoundPage() {
+export const NotFoundPage = () => {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold text-gray-900">Page not found</h1>

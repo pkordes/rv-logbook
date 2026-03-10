@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
  * handler with common middleware — except here we get shared HTML chrome
  * instead of middleware logic.
  */
-export function RootLayout() {
+export const RootLayout = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-primary text-primary-foreground shadow-sm">

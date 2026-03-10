@@ -17,7 +17,7 @@ interface TagPillProps {
  * Renders in read-only mode by default. Pass `onRemove` to add an interactive
  * × button — used inside {@link TagInput} where the user can delete pending tags.
  */
-export function TagPill({ name, onRemove }: TagPillProps) {
+export const TagPill = ({ name, onRemove }: TagPillProps) => {
   return (
     <Badge variant="default" className="gap-1">
       {name}

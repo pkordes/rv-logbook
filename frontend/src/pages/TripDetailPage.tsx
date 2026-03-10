@@ -36,7 +36,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader } from '@/co
  * We manage both with direct API calls + useState rather than a useMutation
  * chain, which keeps the async logic explicit and easy to follow.
  */
-export function TripDetailPage() {
+export const TripDetailPage = () => {
   const { id: tripId = '' } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
 
