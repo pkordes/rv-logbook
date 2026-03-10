@@ -4,17 +4,17 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
+    "module": "ESNext", // Use "ESNext" for Vite, which supports ESM and allows for better tree-shaking
     "types": ["vite/client", "vitest/globals"],
-    "skipLibCheck": true,
+    "skipLibCheck": true, // Skip type checking of declaration files for faster builds
 
     /* Bundler mode */
-    "moduleResolution": "bundler",
+    "moduleResolution": "bundler", // Use "bundler" for Vite, which supports ESM and allows for better tree-shaking
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
-    "noEmit": true,
-    "jsx": "react-jsx",
+    "noEmit": true, // Don't emit any output, as Vite will handle the bundling
+    "jsx": "react-jsx", // Use the new JSX transform for React 17+ (automatic runtime)
 
     /* Path aliases — required by shadcn/ui component imports (@/lib/utils etc.) */
     "baseUrl": ".",
@@ -23,12 +23,12 @@
     },
 
     /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "strict": true, // Enable all strict type-checking options
+    "noUnusedLocals": true, // Report errors on unused local variables
+    "noUnusedParameters": true, // Report errors on unused function parameters
+    "erasableSyntaxOnly": true, // Report errors on syntax that can be safely removed
+    "noFallthroughCasesInSwitch": true, // Report errors on fallthrough cases in switch statements
+    "noUncheckedSideEffectImports": true // Report errors on imports with unchecked side effects
   },
   "include": ["src"]
 }
